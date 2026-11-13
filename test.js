@@ -91,6 +91,26 @@ async function executarTestes() {
   console.assert(relEmpresaSemSimbolo.criterios.regras_empresariais_atendidas === false, 'Critério corporativo falso');
   console.log('   ✅ Regras empresariais ativadas barraram senha sem símbolo');
 
+  // 8.2 Teste de Datas de Calendário e Diagonais de Teclado
+  console.log('\n8.2 Testando Datas de Calendário e Diagonais de Teclado...');
+  console.assert(PassValidatorPro.detectarDataCalendario('15081998') === true, 'Deve detectar 15081998');
+  console.assert(PassValidatorPro.detectarDataCalendario('15/08/1998') === true, 'Deve detectar 15/08/1998');
+  console.assert(PassValidatorPro.detectarPadraoTeclado('senha1qaz2wsx') === true, 'Deve detectar 1qaz');
+  console.log('   ✅ Detecção de datas e diagonais do teclado funcionando');
+
+  // 8.3 Teste de Entropia Efetiva e 4 Cenários de Força Bruta
+  console.log('\n8.3 Testando Entropia Efetiva e 4 Cenários de Força Bruta...');
+  const entRepetida = PassValidatorPro.calcularEntropia('aaaaaaaaaaaaaaaa');
+  console.assert(entRepetida.bits < 10, 'Senha com 1 único caractere repetido deve ter entropia muito baixa');
+  console.assert(entRepetida.bitsTeoricos > 70, 'Entropia teórica seria > 70');
+  console.assert(entRepetida.cenarios_quebra.offline_rapido_gpu === 'Instantâneo (< 1 segundo)', 'Quebra em GPU deve ser instantânea');
+  console.log(`   ✅ Entropia "aaaaaaaaaaaaaaaa": Efetiva ${entRepetida.bits} bits vs Teórica ${entRepetida.bitsTeoricos} bits`);
+
+  // 8.4 Teste de Formatação de Chunks
+  const chunked = PassValidatorPro.formatarChunks('ABCD1234EFGH5678', 4, '-');
+  console.assert(chunked === 'ABCD-1234-EFGH-5678', 'Formatação em chunks deve bater');
+  console.log('   ✅ Chunks formatados com sucesso:', chunked);
+
   // 9. Teste da API HTTP Worker (Cloudflare / Edge)
   console.log('\n9. Testando rotas do Worker HTTP...');
   const { default: worker } = await import('./worker.js');

@@ -6,6 +6,9 @@
   "main": "passvalidator-pro.js",
   "module": "passvalidator-pro.js",
   "types": "types/index.d.ts",
+  "bin": {
+    "passvalidator-pro": "bin/cli.js"
+  },
   "scripts": {
     "test": "node test.js"
   },

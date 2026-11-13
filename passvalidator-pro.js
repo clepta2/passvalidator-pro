@@ -4,18 +4,44 @@
  * - Validação de Vazamentos via Have I Been Pwned (k-Anonymity SHA-1, sem envio de senha)
  * - Cache LRU de prefixos em memória e proteção por Timeout (AbortSignal)
  * - Detecção de Engenharia Social (nome, e-mail, usuário, ano de nascimento)
- * - Detecção de Leetspeak (ex: p@ssw0rd, adm!n2024) e Anos Recentes
- * - Cálculo de Entropia de Shannon (bits) e estimativa de tempo de quebra
+ * - Detecção de Leetspeak (ex: p@ssw0rd, adm!n2024), Anos Recentes e Datas (DDMMAAAA)
+ * - Detecção de Sequências e Diagonais de Teclado QWERTY (1qaz, 2wsx, qwerty, 12345)
+ * - Cálculo de Entropia Efetiva de Shannon e 4 Cenários Práticos de Força Bruta
+ * - Conformidade Avançada com NIST SP 800-63B e OWASP
  * - Validação individual e em Lote (Batch) com deduplicação de chamadas
- * - Conformidade com NIST SP 800-63B e OWASP
- * - Gerador Criptográfico Seguro (crypto.getRandomValues) com 5 Perfis de Proteção
+ * - Gerador Criptográfico Seguro (crypto.getRandomValues) com 6 Perfis e Agrupamento em Chunks
  *
  * @license MIT
  * @author clepta2 <clepta2@gmail.com>
  */
 
+function formatarTempo(segundos) {
+  if (segundos < 1) return 'Instantâneo (< 1 segundo)';
+  if (segundos < 60) return `${Math.round(segundos)} segundos`;
+  if (segundos < 3600) return `${Math.round(segundos / 60)} minutos`;
+  if (segundos < 86400) return `${Math.round(segundos / 3600)} horas`;
+  if (segundos < 31536000) return `${Math.round(segundos / 86400)} dias`;
+  if (segundos < 31536000 * 100) return `${Math.round(segundos / 31536000)} anos`;
+  if (segundos < 31536000 * 1e6) return `${Math.round(segundos / (31536000 * 1000))} mil anos`;
+  return 'Centenas de milhões de anos (Inviável quebrar)';
+}
+
+const DICIONARIO_DICEWARE_PADRAO = [
+  'abacaxi', 'albatroz', 'aldeia', 'algoritmo', 'aurora', 'bateria', 'besouro', 'bussola',
+  'cabana', 'cacau', 'camaleao', 'castelo', 'cometa', 'cristal', 'delta', 'diamante',
+  'dragao', 'eclipse', 'engrenagem', 'esfera', 'falcao', 'farol', 'floresta', 'galaxia',
+  'gaviao', 'girassol', 'horizonte', 'iguana', 'impacto', 'infinito', 'jangada', 'jaguar',
+  'labirinto', 'laguna', 'lanterna', 'lontra', 'madeira', 'marte', 'meteoro', 'miragem',
+  'montanha', 'neblina', 'nebula', 'oceano', 'orquidea', 'oasis', 'pantera', 'passaro',
+  'planeta', 'prisma', 'quasar', 'radar', 'raposa', 'recife', 'sabedoria', 'safira',
+  'satelite', 'sombra', 'tornado', 'trovao', 'tsunami', 'universo', 'vulcao', 'safira',
+  'andorinha', 'arcaico', 'baleia', 'bastiao', 'cacique', 'calmaria', 'cascata', 'colibri',
+  'dinamite', 'dorado', 'esmeralda', 'falange', 'fenix', 'fortaleza', 'glaciar', 'harpia',
+  'harpuna', 'impeto', 'jacaranda', 'leopardo', 'magma', 'mandala', 'navegador', 'oraculo',
+  'pendulo', 'piramide', 'quimera', 'radiante', 'relampago', 'sentinela', 'titanio', 'vertice'
+];
+
 export class PassValidatorPro {
-  // Cache em memória para evitar requisições repetidas de mesmos prefixos HIBP
   static _cachePrefixos = new Map();
   static _maxCacheSize = 500;
 
@@ -59,7 +85,6 @@ export class PassValidatorPro {
 
   /**
    * Normaliza substituições comuns de Leetspeak para análise de padrões semânticos fracos.
-   * Ex: "P@ssw0rd" -> "password", "Adm!n2024" -> "admin2024"
    * @param {string} str
    * @returns {string}
    */
@@ -73,6 +98,39 @@ export class PassValidatorPro {
       .replace(/[0]/g, 'o')
       .replace(/[$5]/g, 's')
       .replace(/[7+]/g, 't');
+  }
+
+  /**
+   * Detecta se a string contém datas de calendário óbvias (ex: DDMMAAAA, DDMMAA, AAAAMMDD).
+   * @param {string} str
+   * @returns {boolean}
+   */
+  static detectarDataCalendario(str) {
+    if (!str || str.length < 6) return false;
+    const padraoDdmmaaaa = /(?:0[1-9]|[12][0-9]|3[01])[\/\-\.]?(?:0[1-9]|1[012])[\/\-\.]?(?:19\d{2}|20[0-3]\d|\d{2})/;
+    const padraoAaaammdd = /(?:19\d{2}|20[0-3]\d)[\/\-\.]?(?:0[1-9]|1[012])[\/\-\.]?(?:0[1-9]|[12][0-9]|3[01])/;
+    return padraoDdmmaaaa.test(str) || padraoAaaammdd.test(str);
+  }
+
+  /**
+   * Detecta padrões sequenciais e diagonais do teclado (QWERTY, numérico, alfabético).
+   * @param {string} str
+   * @returns {boolean}
+   */
+  static detectarPadraoTeclado(str) {
+    if (!str) return false;
+    const s = str.toLowerCase();
+    const padroes = [
+      '12345', '54321', '67890', '09876',
+      'qwerty', 'ytrewq', 'asdfgh', 'hgfdsa', 'zxcvbn', 'nbvcxz',
+      '1qaz', 'zaq1', '2wsx', 'xsw2', '3edc', 'cde3', '4rfv', 'vfr4',
+      '5tgb', 'bgt5', '6yhn', 'nhy6', '7ujm', 'mju7',
+      'abcdef', 'fedcba', 'ghijkl', 'mnopqr'
+    ];
+    for (const p of padroes) {
+      if (s.includes(p)) return true;
+    }
+    return false;
   }
 
   /**
@@ -123,9 +181,6 @@ export class PassValidatorPro {
 
   /**
    * Verifica se a senha foi comprometida em vazamentos públicos de dados usando k-Anonymity.
-   * Apenas os primeiros 5 caracteres do hash SHA-1 são enviados à API do Have I Been Pwned.
-   * A senha ou hash completo NUNCA saem do seu cliente/máquina.
-   *
    * @param {string} senha
    * @returns {Promise<{ verificada: boolean, vazada: boolean, ocorrencias: number, prefixo: string, erro?: string }>}
    */
@@ -160,13 +215,25 @@ export class PassValidatorPro {
   }
 
   /**
-   * Calcula os bits de Entropia de Shannon e estima o tempo para quebra por força bruta.
+   * Calcula a Entropia Efetiva de Shannon e 4 cenários práticos de quebra por força bruta.
    * @param {string} senha
-   * @returns {{ bits: number, tamanhoConjunto: number, tempoEstimadoQuebra: string }}
+   * @returns {{ bits: number, bitsTeoricos: number, tamanhoConjunto: number, taxaDiversidade: number, tempoEstimadoQuebra: string, cenarios_quebra: object }}
    */
   static calcularEntropia(senha) {
     if (!senha || typeof senha !== 'string') {
-      return { bits: 0, tamanhoConjunto: 0, tempoEstimadoQuebra: 'Instantâneo' };
+      return {
+        bits: 0,
+        bitsTeoricos: 0,
+        tamanhoConjunto: 0,
+        taxaDiversidade: 0,
+        tempoEstimadoQuebra: 'Instantâneo (< 1 segundo)',
+        cenarios_quebra: {
+          online_protegido: 'Instantâneo (< 1 segundo)',
+          online_desprotegido: 'Instantâneo (< 1 segundo)',
+          offline_lento_bcrypt: 'Instantâneo (< 1 segundo)',
+          offline_rapido_gpu: 'Instantâneo (< 1 segundo)'
+        }
+      };
     }
 
     let pool = 0;
@@ -175,29 +242,49 @@ export class PassValidatorPro {
     if (/[0-9]/.test(senha)) pool += 10;
     if (/[^a-zA-Z0-9]/.test(senha)) pool += 33;
 
-    if (pool === 0) return { bits: 0, tamanhoConjunto: 0, tempoEstimadoQuebra: 'Instantâneo' };
+    if (pool === 0) {
+      return {
+        bits: 0,
+        bitsTeoricos: 0,
+        tamanhoConjunto: 0,
+        taxaDiversidade: 0,
+        tempoEstimadoQuebra: 'Instantâneo (< 1 segundo)',
+        cenarios_quebra: {}
+      };
+    }
 
-    const bits = Math.round(senha.length * Math.log2(pool) * 10) / 10;
+    const bitsTeoricos = Math.round(senha.length * Math.log2(pool) * 10) / 10;
 
-    // Suposição de ataque de força bruta offline em hardware especializado (100 bilhões de tentativas/s)
-    const taxaTentativasPorSegundo = 1e11;
+    // Fator de diversidade real (penaliza senhas repetidas como 'aaaaaaaa')
+    const caracteresUnicos = new Set(senha).size;
+    const taxaDiversidade = Math.round((caracteresUnicos / senha.length) * 100) / 100;
+
+    let fatorRepeticaoBlocos = 1;
+    if (/(.{2,})\1+/.test(senha)) {
+      fatorRepeticaoBlocos = 0.65;
+    }
+
+    const bitsEfetivos = Math.round(bitsTeoricos * Math.max(0.08, taxaDiversidade) * fatorRepeticaoBlocos * 10) / 10;
+    const bits = Math.max(0, bitsEfetivos);
+
+    // Média de tentativas necessárias para quebra por força bruta (50% do espaço de busca)
     const combinacoesPossiveis = Math.pow(2, bits);
-    const segundos = combinacoesPossiveis / (2 * taxaTentativasPorSegundo);
+    const mediaTentativas = combinacoesPossiveis / 2;
 
-    let tempoEstimado = 'Instantâneo (< 1 segundo)';
-    if (segundos < 1) tempoEstimado = 'Instantâneo (< 1 segundo)';
-    else if (segundos < 60) tempoEstimado = `${Math.round(segundos)} segundos`;
-    else if (segundos < 3600) tempoEstimado = `${Math.round(segundos / 60)} minutos`;
-    else if (segundos < 86400) tempoEstimado = `${Math.round(segundos / 3600)} horas`;
-    else if (segundos < 31536000) tempoEstimado = `${Math.round(segundos / 86400)} dias`;
-    else if (segundos < 31536000 * 100) tempoEstimado = `${Math.round(segundos / 31536000)} anos`;
-    else if (segundos < 31536000 * 1e6) tempoEstimado = `${Math.round(segundos / (31536000 * 1000))} mil anos`;
-    else tempoEstimado = 'Centenas de milhões de anos (Inviável quebrar)';
+    const cenarios = {
+      online_protegido: formatarTempo(mediaTentativas / 0.0277), // 100 reqs/hora (Web com rate-limit)
+      online_desprotegido: formatarTempo(mediaTentativas / 1000), // 1.000 reqs/segundo
+      offline_lento_bcrypt: formatarTempo(mediaTentativas / 10000), // 10.000 hashes/s (Argon2id/bcrypt)
+      offline_rapido_gpu: formatarTempo(mediaTentativas / 1e11) // 100 bilhões hashes/s (MD5/NTLM/SHA-256 em GPU RTX 4090)
+    };
 
     return {
       bits,
+      bitsTeoricos,
       tamanhoConjunto: pool,
-      tempoEstimadoQuebra: tempoEstimado
+      taxaDiversidade,
+      tempoEstimadoQuebra: cenarios.offline_rapido_gpu,
+      cenarios_quebra: cenarios
     };
   }
 
@@ -209,11 +296,7 @@ export class PassValidatorPro {
    * @param {boolean} [opcoes.verificarVazamento=true] Consultar base Have I Been Pwned
    * @param {number} [opcoes.tamanhoMinimo=8] Comprimento mínimo exigido
    * @param {object} [opcoes.dadosUsuario] Dados do usuário para checagem anti-engenharia social
-   * @param {string} [opcoes.dadosUsuario.nome]
-   * @param {string} [opcoes.dadosUsuario.sobrenome]
-   * @param {string} [opcoes.dadosUsuario.email]
-   * @param {string} [opcoes.dadosUsuario.usuario]
-   * @param {string|number} [opcoes.dadosUsuario.anoNascimento]
+   * @param {boolean} [opcoes.regrasEmpresariais=false] Exige estritamente maiúsculas, minúsculas, números e símbolos
    * @returns {Promise<object>} Relatório minucioso de força, regras e vazamento
    */
   static async validar(senha, opcoes = {}) {
@@ -243,11 +326,12 @@ export class PassValidatorPro {
     // Detecção de repetições sequenciais (ex: aaaa, 1111)
     const temRepeticoes = /(.)\1{2,}/.test(senha);
 
-    // Detecção de sequências comuns de teclado
-    const ehSequencial = /(12345|54321|qwerty|asdfgh|zxcvbn|abcdef)/i.test(senha);
+    // Detecção de padrões de teclado
+    const ehSequencial = this.detectarPadraoTeclado(senha);
 
-    // Detecção de anos recentes (ex: 2018 a 2030)
+    // Detecção de anos recentes e datas de calendário (DDMMAAAA)
     const temAnoRecente = /(19\d{2}|20[0-3]\d)/.test(senha);
+    const temDataCalendario = this.detectarDataCalendario(senha);
 
     // Detecção de Leetspeak vulnerável
     const normalizada = this.normalizarLeetspeak(senha);
@@ -296,9 +380,10 @@ export class PassValidatorPro {
     if (temRepeticoes) score -= 15;
     if (ehSequencial) score -= 20;
     if (temAnoRecente) score -= 10;
+    if (temDataCalendario) score -= 20;
     if (ehLeetspeakFraco) score -= 25;
     if (violacoesDadosPessoais.length > 0) score -= 30;
-    if (infoVazamento.vazada) score = Math.min(score, 15); // Se vazou, nota máxima cai para 15
+    if (infoVazamento.vazada) score = Math.min(score, 15);
     score = Math.max(0, Math.min(100, score));
 
     let nivel = 'muito_fraca';
@@ -330,7 +415,10 @@ export class PassValidatorPro {
       sugestoes.push('Evite truques simples de leetspeak como "p@ssw0rd" ou "adm!n".');
     }
 
-    if (temAnoRecente) {
+    if (temDataCalendario) {
+      motivos.push('Contém uma data de calendário evidente (ex: DDMMAAAA ou DD/MM/AAAA).');
+      sugestoes.push('Evite datas de aniversário ou casamentos na composição da senha.');
+    } else if (temAnoRecente) {
       motivos.push('Contém um ano numérico recente, padrão muito explorado em ataques de dicionário.');
       sugestoes.push('Evite incluir anos (como 2024, 2025, 2026) no início ou final da senha.');
     }
@@ -353,8 +441,8 @@ export class PassValidatorPro {
     }
 
     if (ehSequencial) {
-      motivos.push('Contém sequências óbvias de digitação (ex: "12345", "qwerty").');
-      sugestoes.push('Elimine sequências lineares do teclado numérico ou alfabético.');
+      motivos.push('Contém sequências óbvias de digitação ou diagonais do teclado (ex: "12345", "1qaz", "qwerty").');
+      sugestoes.push('Elimine sequências lineares ou diagonais do teclado.');
     }
 
     let atendeRegrasEmpresariais = true;
@@ -365,12 +453,16 @@ export class PassValidatorPro {
       }
     }
 
+    const nistConforme = comprimento >= 8 && !infoVazamento.vazada && violacoesDadosPessoais.length === 0 && !temDataCalendario;
+
     return {
       valida: score >= 60 && !infoVazamento.vazada && comprimento >= tamanhoMinimo && violacoesDadosPessoais.length === 0 && atendeRegrasEmpresariais,
       score,
       nivel,
       entropia_bits: entropia.bits,
+      entropia_teorica: entropia.bitsTeoricos,
       tempo_estimado_quebra: entropia.tempoEstimadoQuebra,
+      cenarios_quebra: entropia.cenarios_quebra,
       criterios: {
         comprimento,
         tem_minusculas: temMinusculas,
@@ -380,10 +472,22 @@ export class PassValidatorPro {
         tem_repeticoes: temRepeticoes,
         eh_sequencial: ehSequencial,
         tem_ano_recente: temAnoRecente,
+        tem_data_calendario: temDataCalendario,
         eh_leetspeak_fraco: ehLeetspeakFraco,
         contem_dados_pessoais: violacoesDadosPessoais.length > 0,
         regras_empresariais_atendidas: atendeRegrasEmpresariais,
-        nist_sp_800_63b: comprimento >= 8 && !infoVazamento.vazada && violacoesDadosPessoais.length === 0
+        nist_sp_800_63b: nistConforme
+      },
+      nist_checklist: {
+        conforme: nistConforme,
+        regras: {
+          comprimento_minimo_8: comprimento >= 8,
+          comprimento_recomendado_15: comprimento >= 15,
+          ausente_em_vazamentos: !infoVazamento.vazada,
+          sem_dados_contextuais: violacoesDadosPessoais.length === 0,
+          sem_datas_obvias: !temDataCalendario,
+          sem_sequencias_triviais: !ehSequencial
+        }
       },
       vazamento: infoVazamento,
       motivos,
@@ -393,8 +497,7 @@ export class PassValidatorPro {
 
   /**
    * Valida uma lista de senhas em lote (Batch), otimizando chamadas de rede com deduplicação de prefixos SHA-1.
-   *
-   * @param {string[]} senhas Lista de senhas a auditar
+   * @param {string[]} senhas
    * @param {object} [opcoes={}]
    * @returns {Promise<{ total: number, validas: number, comprometidas: number, relatorios: object[] }>}
    */
@@ -423,16 +526,31 @@ export class PassValidatorPro {
   }
 
   /**
+   * Formata uma string de senha em blocos legíveis (ex: abcd-efgh-ijkl).
+   * @param {string} senha
+   * @param {number} [tamanhoBloco=4]
+   * @param {string} [separador='-']
+   * @returns {string}
+   */
+  static formatarChunks(senha, tamanhoBloco = 4, separador = '-') {
+    if (!senha) return '';
+    const regex = new RegExp(`.{1,${tamanhoBloco}}`, 'g');
+    const chunks = senha.match(regex) || [];
+    return chunks.join(separador);
+  }
+
+  /**
    * Gerador Criptográfico de Senhas Multiperfil
    *
    * Perfis suportados:
    * - 'forte' / 'completa': Padrão empresarial (maiúsculas, minúsculas, números, símbolos, sem ambíguos)
+   * - 'passphrase' / 'diceware': Frase memorável estilo Diceware/XKCD (ex: "Aurora.Satélite.Quasar.42!")
    * - 'alfanumerica': Letras e números apenas (URL-safe, sem caracteres problemáticos para terminais)
    * - 'pin': PIN numérico puro (bancos, cartões, 2FA)
    * - 'pronunciavel': Padrão silábico fonético fácil de ler e ditar em voz alta
    * - 'token': Chave criptográfica em hexadecimal ou base64url (para APIs e Webhooks)
    *
-   * @param {'forte'|'alfanumerica'|'pin'|'pronunciavel'|'token'} [tipo='forte']
+   * @param {'forte'|'passphrase'|'alfanumerica'|'pin'|'pronunciavel'|'token'} [tipo='forte']
    * @param {object} [opcoes={}]
    * @returns {string} Senha gerada
    */
@@ -442,7 +560,7 @@ export class PassValidatorPro {
     // 1. FORTE / COMPLETA (Enterprise Standard)
     if (perfil === 'forte' || perfil === 'completa' || perfil === 'complex') {
       const comprimento = Math.max(8, Math.min(128, opcoes.comprimento || 16));
-      const evitarAmbiguos = opcoes.evitarAmbiguos !== false; // padrão true (remove 0, O, 1, l, I)
+      const evitarAmbiguos = opcoes.evitarAmbiguos !== false;
 
       let maiusc = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
       let minusc = 'abcdefghijkmnopqrstuvwxyz';
@@ -455,7 +573,6 @@ export class PassValidatorPro {
         nums += '01';
       }
 
-      // Garante pelo menos um caractere de cada conjunto
       const resultado = [
         maiusc[this.secureRandomInt(maiusc.length)],
         minusc[this.secureRandomInt(minusc.length)],
@@ -468,78 +585,15 @@ export class PassValidatorPro {
         resultado.push(todos[this.secureRandomInt(todos.length)]);
       }
 
-      return this.secureShuffle(resultado).join('');
+      const finalPass = this.secureShuffle(resultado).join('');
+      return opcoes.agruparChunks ? this.formatarChunks(finalPass) : finalPass;
     }
 
-    // 2. ALFANUMÉRICA (URL-Safe / Sem Símbolos)
-    if (perfil === 'alfanumerica' || perfil === 'alphanumeric') {
-      const comprimento = Math.max(8, Math.min(128, opcoes.comprimento || 16));
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      const resultado = [];
-      for (let i = 0; i < comprimento; i++) {
-        resultado.push(chars[this.secureRandomInt(chars.length)]);
-      }
-      return resultado.join('');
-    }
-
-    // 3. PIN NUMÉRICO (Bancos / 2FA)
-    if (perfil === 'pin' || perfil === 'numerica') {
-      const comprimento = Math.max(4, Math.min(16, opcoes.comprimento || 6));
-      let pin = '';
-      for (let i = 0; i < comprimento; i++) {
-        pin += this.secureRandomInt(10).toString();
-      }
-      // Rejeita PINs triviais (ex: 0000, 1111)
-      if (/^(.)\1+$/.test(pin) || pin === '1234' || pin === '123456') {
-        return this.gerar('pin', opcoes);
-      }
-      return pin;
-    }
-
-    // 4. PRONUNCIÁVEL (Padrão Silábico Consoante-Vogal)
-    if (perfil === 'pronunciavel' || perfil === 'pronounceable') {
-      const blocos = Math.max(2, Math.min(8, opcoes.blocos || 3));
-      const consoantes = 'bcdfghjklmnprstvwz';
-      const vogais = 'aeiou';
-      const partes = [];
-
-      for (let b = 0; b < blocos; b++) {
-        let silaba = '';
-        const tam = 2 + this.secureRandomInt(2); // 2 ou 3 letras
-        for (let i = 0; i < tam; i++) {
-          silaba += (i % 2 === 0)
-            ? consoantes[this.secureRandomInt(consoantes.length)]
-            : vogais[this.secureRandomInt(vogais.length)];
-        }
-        partes.push(silaba);
-      }
-
-      const separador = opcoes.separador || '-';
-      let resultado = partes.join(separador);
-
-      // Adiciona número e símbolo ao final para reforço de entropia
-      if (opcoes.incluirNumero !== false) {
-        resultado += `${separador}${this.secureRandomInt(90) + 10}`;
-      }
-      if (opcoes.incluirSimbolo !== false) {
-        const simbolos = '!@#$%&*';
-        resultado += simbolos[this.secureRandomInt(simbolos.length)];
-      }
-
-      return resultado;
-    }
-
-    // 5. PASSPHRASE / DICEWARE (Frase-passe memorável)
+    // 2. PASSPHRASE / DICEWARE (Frase-passe memorável)
     if (perfil === 'passphrase' || perfil === 'diceware') {
-      const listaPadrao = [
-        'aurora', 'cometa', 'diamante', 'eclipse', 'falcao', 'galaxia', 'horizonte',
-        'jaguar', 'lanterna', 'miragem', 'neblina', 'oceano', 'planeta', 'quasar',
-        'raposa', 'satelite', 'tornado', 'universo', 'vulcao', 'safira', 'cristal',
-        'bussola', 'engrenagem', 'esfera', 'floresta', 'oasis', 'prisma', 'sabedoria'
-      ];
       const palavras = Array.isArray(opcoes.listaPalavras) && opcoes.listaPalavras.length >= 5
         ? opcoes.listaPalavras
-        : listaPadrao;
+        : DICIONARIO_DICEWARE_PADRAO;
 
       const qtd = Math.max(3, Math.min(8, opcoes.palavras || 4));
       const separador = opcoes.separador || '-';
@@ -564,6 +618,63 @@ export class PassValidatorPro {
       return res;
     }
 
+    // 3. ALFANUMÉRICA (URL-Safe / Sem Símbolos)
+    if (perfil === 'alfanumerica' || perfil === 'alphanumeric') {
+      const comprimento = Math.max(8, Math.min(128, opcoes.comprimento || 16));
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      const resultado = [];
+      for (let i = 0; i < comprimento; i++) {
+        resultado.push(chars[this.secureRandomInt(chars.length)]);
+      }
+      const finalPass = resultado.join('');
+      return opcoes.agruparChunks ? this.formatarChunks(finalPass) : finalPass;
+    }
+
+    // 4. PIN NUMÉRICO (Bancos / 2FA)
+    if (perfil === 'pin' || perfil === 'numerica') {
+      const comprimento = Math.max(4, Math.min(16, opcoes.comprimento || 6));
+      let pin = '';
+      for (let i = 0; i < comprimento; i++) {
+        pin += this.secureRandomInt(10).toString();
+      }
+      if (/^(.)\1+$/.test(pin) || pin === '1234' || pin === '123456') {
+        return this.gerar('pin', opcoes);
+      }
+      return pin;
+    }
+
+    // 5. PRONUNCIÁVEL (Padrão Silábico Consoante-Vogal)
+    if (perfil === 'pronunciavel' || perfil === 'pronounceable') {
+      const blocos = Math.max(2, Math.min(8, opcoes.blocos || 3));
+      const consoantes = 'bcdfghjklmnprstvwz';
+      const vogais = 'aeiou';
+      const partes = [];
+
+      for (let b = 0; b < blocos; b++) {
+        let silaba = '';
+        const tam = 2 + this.secureRandomInt(2);
+        for (let i = 0; i < tam; i++) {
+          silaba += (i % 2 === 0)
+            ? consoantes[this.secureRandomInt(consoantes.length)]
+            : vogais[this.secureRandomInt(vogais.length)];
+        }
+        partes.push(silaba);
+      }
+
+      const separador = opcoes.separador || '-';
+      let resultado = partes.join(separador);
+
+      if (opcoes.incluirNumero !== false) {
+        resultado += `${separador}${this.secureRandomInt(90) + 10}`;
+      }
+      if (opcoes.incluirSimbolo !== false) {
+        const simbolos = '!@#$%&*';
+        resultado += simbolos[this.secureRandomInt(simbolos.length)];
+      }
+
+      return resultado;
+    }
+
     // 6. TOKEN CRIPTOGRÁFICO / API KEY
     if (perfil === 'token' || perfil === 'crypto_token') {
       const bytes = Math.max(16, Math.min(64, opcoes.bytes || 32));
@@ -574,7 +685,7 @@ export class PassValidatorPro {
       return `${prefixo}${hex}`;
     }
 
-    throw new Error(`Perfil '${tipo}' desconhecido. Use: 'forte', 'alfanumerica', 'pin', 'pronunciavel', 'passphrase' ou 'token'.`);
+    throw new Error(`Perfil '${tipo}' desconhecido. Use: 'forte', 'passphrase', 'alfanumerica', 'pin', 'pronunciavel' ou 'token'.`);
   }
 }
 

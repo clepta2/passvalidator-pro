@@ -176,7 +176,7 @@
       padding: 4px 8px;
     }
 
-    /* Contexto de Usuário Opcional */
+    /* Contexto Opcional */
     .user-context-box {
       background: #0d1527;
       border: 1px dashed #2d3748;
@@ -234,22 +234,52 @@
       font-weight: 600;
     }
 
-    /* Grid de Estatísticas */
-    .stats-grid {
+    /* Checklist de Requisitos */
+    .checklist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 0.6rem;
+      margin: 1.5rem 0;
+      background: #0b1324;
+      border: 1px solid #1e293b;
+      padding: 1rem;
+      border-radius: 12px;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.825rem;
+      color: #9ca3af;
+      transition: color 0.2s;
+    }
+
+    .checklist-item.pass {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .checklist-item.fail {
+      color: #ef4444;
+    }
+
+    /* Cenários de Ataque */
+    .scenarios-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
       margin-top: 1.5rem;
     }
 
-    .stat-box {
+    .scenario-box {
       background: #0c1222;
       border: 1px solid #1e293b;
       padding: 1rem;
       border-radius: 10px;
     }
 
-    .stat-label {
+    .scenario-title {
       font-size: 0.775rem;
       color: var(--text-muted);
       text-transform: uppercase;
@@ -257,13 +287,14 @@
       margin-bottom: 0.35rem;
     }
 
-    .stat-val {
-      font-size: 1.1rem;
+    .scenario-time {
+      font-size: 1.05rem;
       font-weight: 700;
       font-family: var(--font-mono);
+      color: #60a5fa;
     }
 
-    /* Alerta de Vazamento HIBP */
+    /* Alerta de Vazamento */
     .breach-alert {
       padding: 1rem;
       border-radius: 10px;
@@ -296,7 +327,7 @@
       border: 1px solid #2563eb;
       font-family: var(--font-mono);
       font-size: 1.25rem;
-      padding: 1rem 4rem 1rem 1rem;
+      padding: 1rem 8rem 1rem 1rem;
       border-radius: 10px;
       word-break: break-all;
       color: #60a5fa;
@@ -305,15 +336,20 @@
       align-items: center;
     }
 
-    .btn-copy {
+    .gen-actions-wrapper {
       position: absolute;
       right: 10px;
       top: 50%;
       transform: translateY(-50%);
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-action-sm {
       background: #1e3a8a;
       border: 1px solid #3b82f6;
       color: #bfdbfe;
-      padding: 0.5rem 0.8rem;
+      padding: 0.45rem 0.75rem;
       border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
@@ -321,7 +357,7 @@
       transition: background 0.2s;
     }
 
-    .btn-copy:hover {
+    .btn-action-sm:hover {
       background: #2563eb;
     }
 
@@ -360,10 +396,36 @@
       accent-color: var(--primary);
     }
 
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #d1d5db;
+      margin-top: 0.75rem;
+      cursor: pointer;
+    }
+
+    .checkbox-wrap input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
     /* Tabela de Lote */
     .batch-table-container {
       margin-top: 1.5rem;
       overflow-x: auto;
+    }
+
+    .batch-actions-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 1.5rem 0 1rem;
+      gap: 1rem;
+      flex-wrap: wrap;
     }
 
     table {
@@ -472,24 +534,39 @@
         </div>
       </div>
 
+      <!-- Checklist de Requisitos Interativo -->
+      <div class="checklist-grid">
+        <div class="checklist-item" id="chkLength">⚪ Mínimo 8 caracteres (ideal 14+)</div>
+        <div class="checklist-item" id="chkUpperLower">⚪ Letras maiúsculas e minúsculas</div>
+        <div class="checklist-item" id="chkDigitsSymbols">⚪ Números e símbolos especiais</div>
+        <div class="checklist-item" id="chkHibp">⚪ 0 vazamentos no Have I Been Pwned</div>
+        <div class="checklist-item" id="chkKeyboard">⚪ Sem diagonais/sequências de teclado</div>
+        <div class="checklist-item" id="chkDates">⚪ Sem datas de aniversário (DDMMAAAA)</div>
+        <div class="checklist-item" id="chkUserData">⚪ Sem nome, e-mail ou dados pessoais</div>
+      </div>
+
       <div class="breach-alert" id="breachAlert"></div>
 
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="stat-label">Entropia (Shannon)</div>
-          <div class="stat-val" id="statEntropy">0 bits</div>
+      <!-- Cenários Práticos de Ataque -->
+      <div style="margin-top: 1.5rem; font-size: 0.85rem; font-weight: 700; color: #d1d5db;">
+        ⏱️ Estimativa de Tempo de Quebra por Força Bruta (4 Cenários):
+      </div>
+      <div class="scenarios-grid">
+        <div class="scenario-box">
+          <div class="scenario-title">🌐 Web com Rate-Limit (100/h)</div>
+          <div class="scenario-time" id="scenOnlineRate">-</div>
         </div>
-        <div class="stat-box">
-          <div class="stat-label">Tempo Estimado de Quebra</div>
-          <div class="stat-val" id="statCrackTime">-</div>
+        <div class="scenario-box">
+          <div class="scenario-title">⚡ Web Sem Proteção (1k/s)</div>
+          <div class="scenario-time" id="scenOnlineFast">-</div>
         </div>
-        <div class="stat-box">
-          <div class="stat-label">NIST SP 800-63B</div>
-          <div class="stat-val" id="statNist">-</div>
+        <div class="scenario-box">
+          <div class="scenario-title">🛡️ Offline Lento (bcrypt/Argon2)</div>
+          <div class="scenario-time" id="scenOfflineSlow">-</div>
         </div>
-        <div class="stat-box">
-          <div class="stat-label">Status no Pwned Passwords</div>
-          <div class="stat-val" id="statHibp">Não verificado</div>
+        <div class="scenario-box">
+          <div class="scenario-title">💥 GPU RTX 4090 (100B/s)</div>
+          <div class="scenario-time" id="scenOfflineGpu">-</div>
         </div>
       </div>
     </div>
@@ -498,7 +575,10 @@
     <div class="card" id="viewGerador" style="display: none;">
       <div class="generator-output">
         <div class="gen-display" id="generatedPassword">Clique em Gerar para criar...</div>
-        <button class="btn-copy" id="btnCopy">Copiar</button>
+        <div class="gen-actions-wrapper">
+          <button class="btn-action-sm" id="btnTestThis">🔍 Auditar</button>
+          <button class="btn-action-sm" id="btnCopy">Copiar</button>
+        </div>
       </div>
 
       <div class="controls-grid">
@@ -512,6 +592,11 @@
             <option value="pronunciavel">Pronunciável (Fácil de ditar)</option>
             <option value="token">Token Criptográfico (API Key 32 bytes)</option>
           </select>
+
+          <label class="checkbox-wrap" id="wrapChunks">
+            <input type="checkbox" id="chkChunks">
+            Agrupar em blocos de 4 (ex: abcd-efgh-ijkl)
+          </label>
         </div>
 
         <div id="lengthControlGroup">
@@ -535,7 +620,13 @@
       <button class="btn-action" id="btnRunBatch">🚀 Iniciar Auditoria em Lote</button>
 
       <div class="batch-table-container" id="batchResultContainer" style="display: none;">
-        <div style="margin: 1.5rem 0 1rem; font-weight: 700; color: #93c5fd;" id="batchSummary"></div>
+        <div class="batch-actions-header">
+          <div style="font-weight: 700; color: #93c5fd;" id="batchSummary"></div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn-action-sm" id="btnExportCsv">📥 Baixar CSV</button>
+            <button class="btn-action-sm" id="btnCopyJson">📋 Copiar JSON</button>
+          </div>
+        </div>
         <table>
           <thead>
             <tr>
@@ -567,15 +658,20 @@
       { btn: document.getElementById('tabLoteBtn'), view: document.getElementById('viewLote') }
     ];
 
-    tabs.forEach(({ btn, view }) => {
-      btn.addEventListener('click', () => {
-        tabs.forEach(t => {
+    function mudarAba(indice) {
+      tabs.forEach((t, i) => {
+        if (i === indice) {
+          t.btn.classList.add('active');
+          t.view.style.display = 'block';
+        } else {
           t.btn.classList.remove('active');
           t.view.style.display = 'none';
-        });
-        btn.classList.add('active');
-        view.style.display = 'block';
+        }
       });
+    }
+
+    tabs.forEach(({ btn }, idx) => {
+      btn.addEventListener('click', () => mudarAba(idx));
     });
 
     // 1. Validador Individual
@@ -588,10 +684,19 @@
     const meterText = document.getElementById('meterText');
     const scoreText = document.getElementById('scoreText');
     const breachAlert = document.getElementById('breachAlert');
-    const statEntropy = document.getElementById('statEntropy');
-    const statCrackTime = document.getElementById('statCrackTime');
-    const statNist = document.getElementById('statNist');
-    const statHibp = document.getElementById('statHibp');
+
+    const chkLength = document.getElementById('chkLength');
+    const chkUpperLower = document.getElementById('chkUpperLower');
+    const chkDigitsSymbols = document.getElementById('chkDigitsSymbols');
+    const chkHibp = document.getElementById('chkHibp');
+    const chkKeyboard = document.getElementById('chkKeyboard');
+    const chkDates = document.getElementById('chkDates');
+    const chkUserData = document.getElementById('chkUserData');
+
+    const scenOnlineRate = document.getElementById('scenOnlineRate');
+    const scenOnlineFast = document.getElementById('scenOnlineFast');
+    const scenOfflineSlow = document.getElementById('scenOfflineSlow');
+    const scenOfflineGpu = document.getElementById('scenOfflineGpu');
 
     let debounceTimer;
 
@@ -605,6 +710,19 @@
       }
     });
 
+    function setCheck(el, cond, textoBase) {
+      if (cond === null) {
+        el.className = 'checklist-item';
+        el.textContent = `⚪ ${textoBase}`;
+      } else if (cond) {
+        el.className = 'checklist-item pass';
+        el.textContent = `✅ ${textoBase}`;
+      } else {
+        el.className = 'checklist-item fail';
+        el.textContent = `❌ ${textoBase}`;
+      }
+    }
+
     function dispararValidacao() {
       clearTimeout(debounceTimer);
       const val = passwordInput.value;
@@ -614,17 +732,30 @@
         meterText.textContent = 'Aguardando senha...';
         scoreText.textContent = 'Score: 0/100';
         breachAlert.style.display = 'none';
-        statEntropy.textContent = '0 bits';
-        statCrackTime.textContent = '-';
-        statNist.textContent = '-';
-        statHibp.textContent = 'Não verificado';
+
+        setCheck(chkLength, null, 'Mínimo 8 caracteres (ideal 14+)');
+        setCheck(chkUpperLower, null, 'Letras maiúsculas e minúsculas');
+        setCheck(chkDigitsSymbols, null, 'Números e símbolos especiais');
+        setCheck(chkHibp, null, '0 vazamentos no Have I Been Pwned');
+        setCheck(chkKeyboard, null, 'Sem diagonais/sequências de teclado');
+        setCheck(chkDates, null, 'Sem datas de aniversário (DDMMAAAA)');
+        setCheck(chkUserData, null, 'Sem nome, e-mail ou dados pessoais');
+
+        scenOnlineRate.textContent = '-';
+        scenOnlineFast.textContent = '-';
+        scenOfflineSlow.textContent = '-';
+        scenOfflineGpu.textContent = '-';
         return;
       }
 
-      const ent = PassValidatorPro.calcularEntropia(val);
-      statEntropy.textContent = `${ent.bits} bits`;
-      statCrackTime.textContent = ent.tempoEstimadoQuebra;
-      statHibp.textContent = 'Consultando...';
+      // Checklist instantâneo em memória
+      setCheck(chkLength, val.length >= 8, 'Mínimo 8 caracteres (ideal 14+)');
+      setCheck(chkUpperLower, /[a-z]/.test(val) && /[A-Z]/.test(val), 'Letras maiúsculas e minúsculas');
+      setCheck(chkDigitsSymbols, /[0-9]/.test(val) && /[^a-zA-Z0-9]/.test(val), 'Números e símbolos especiais');
+      setCheck(chkKeyboard, !PassValidatorPro.detectarPadraoTeclado(val), 'Sem diagonais/sequências de teclado');
+      setCheck(chkDates, !PassValidatorPro.detectarDataCalendario(val), 'Sem datas de aniversário (DDMMAAAA)');
+
+      chkHibp.textContent = '⏳ Consultando HIBP (k-Anonymity)...';
 
       debounceTimer = setTimeout(async () => {
         const dadosUsuario = {
@@ -655,26 +786,30 @@
           meterText.textContent = 'Excelente 🟢';
         }
 
-        statNist.textContent = rep.criterios.nist_sp_800_63b ? '✅ Conforme' : '❌ Não atende';
+        setCheck(chkUserData, !rep.criterios.contem_dados_pessoais, 'Sem nome, e-mail ou dados pessoais');
+        setCheck(chkHibp, !rep.vazamento.vazada, rep.vazamento.vazada
+          ? `Vazada (${rep.vazamento.ocorrencias.toLocaleString('pt-BR')}x no HIBP)`
+          : '0 vazamentos no Have I Been Pwned');
+
+        if (rep.cenarios_quebra) {
+          scenOnlineRate.textContent = rep.cenarios_quebra.online_protegido;
+          scenOnlineFast.textContent = rep.cenarios_quebra.online_desprotegido;
+          scenOfflineSlow.textContent = rep.cenarios_quebra.offline_lento_bcrypt;
+          scenOfflineGpu.textContent = rep.cenarios_quebra.offline_rapido_gpu;
+        }
 
         if (rep.vazamento.vazada) {
-          statHibp.textContent = `⚠️ Vazada (${rep.vazamento.ocorrencias.toLocaleString('pt-BR')}x)`;
-          statHibp.style.color = 'var(--danger)';
           breachAlert.className = 'breach-alert danger';
           breachAlert.style.display = 'block';
           breachAlert.innerHTML = `<strong>⚠️ ALERTA DE VAZAMENTO:</strong> Esta senha foi localizada <strong>${rep.vazamento.ocorrencias.toLocaleString('pt-BR')} vezes</strong> no banco público de credenciais vazadas (Have I Been Pwned).`;
-        } else if (rep.vazamento.verificada) {
-          statHibp.textContent = '🛡️ Limpa (0 vazamentos)';
-          statHibp.style.color = 'var(--success)';
-          breachAlert.className = 'breach-alert safe';
-          breachAlert.style.display = 'block';
-          breachAlert.innerHTML = `<strong>🛡️ Protegida:</strong> Nenhuma ocorrência desta senha foi encontrada no Have I Been Pwned.`;
-        }
-
-        if (rep.motivos.length > 0 && !rep.vazamento.vazada) {
+        } else if (rep.motivos.length > 0) {
           breachAlert.className = 'breach-alert danger';
           breachAlert.style.display = 'block';
           breachAlert.innerHTML = `<strong>⚠️ Alerta de Segurança:</strong> ${rep.motivos.join(' ')}`;
+        } else {
+          breachAlert.className = 'breach-alert safe';
+          breachAlert.style.display = 'block';
+          breachAlert.innerHTML = `<strong>🛡️ Protegida:</strong> Nenhuma ocorrência desta senha foi encontrada no Have I Been Pwned e ela atende aos padrões NIST SP 800-63B.`;
         }
       }, 300);
     }
@@ -691,6 +826,8 @@
     const lengthValue = document.getElementById('lengthValue');
     const btnGenerate = document.getElementById('btnGenerate');
     const btnCopy = document.getElementById('btnCopy');
+    const btnTestThis = document.getElementById('btnTestThis');
+    const chkChunks = document.getElementById('chkChunks');
     const lengthControlGroup = document.getElementById('lengthControlGroup');
 
     profileSelect.addEventListener('change', () => {
@@ -725,10 +862,17 @@
       dispararGerador();
     });
 
+    chkChunks.addEventListener('change', dispararGerador);
+
     function dispararGerador() {
       const perfil = profileSelect.value;
       const comp = parseInt(lengthRange.value, 10);
-      const pass = PassValidatorPro.gerar(perfil, { comprimento: comp, palavras: comp });
+      const agrupar = chkChunks.checked;
+      const pass = PassValidatorPro.gerar(perfil, {
+        comprimento: comp,
+        palavras: comp,
+        agruparChunks: agrupar
+      });
       generatedPassword.textContent = pass;
     }
 
@@ -745,6 +889,15 @@
       }, 1500);
     });
 
+    // Testar senha gerada no validador
+    btnTestThis.addEventListener('click', () => {
+      const text = generatedPassword.textContent;
+      if (!text || text.includes('Clique em')) return;
+      passwordInput.value = text;
+      mudarAba(0);
+      dispararValidacao();
+    });
+
     dispararGerador();
 
     // 3. Auditoria em Lote (Batch)
@@ -753,6 +906,10 @@
     const batchResultContainer = document.getElementById('batchResultContainer');
     const batchSummary = document.getElementById('batchSummary');
     const batchTableBody = document.getElementById('batchTableBody');
+    const btnExportCsv = document.getElementById('btnExportCsv');
+    const btnCopyJson = document.getElementById('btnCopyJson');
+
+    let ultimoResultadoLote = null;
 
     btnRunBatch.addEventListener('click', async () => {
       const linhas = batchTextarea.value.split('\n').map(l => l.trim()).filter(Boolean);
@@ -765,6 +922,7 @@
       btnRunBatch.textContent = '⏳ Auditando lista contra 850M+ senhas...';
 
       const resultado = await PassValidatorPro.validarLote(linhas, { verificarVazamento: true });
+      ultimoResultadoLote = resultado;
 
       batchTableBody.innerHTML = '';
       resultado.relatorios.forEach(r => {
@@ -782,11 +940,34 @@
         batchTableBody.appendChild(tr);
       });
 
-      batchSummary.textContent = `Resultado da Auditoria: ${resultado.total} senhas analisadas · ${resultado.comprometidas} vazadas · ${resultado.validas} aprovadas.`;
+      batchSummary.textContent = `Auditoria Concluída: ${resultado.total} senhas analisadas · ${resultado.comprometidas} vazadas · ${resultado.validas} aprovadas.`;
       batchResultContainer.style.display = 'block';
 
       btnRunBatch.disabled = false;
       btnRunBatch.textContent = '🚀 Iniciar Auditoria em Lote';
+    });
+
+    btnCopyJson.addEventListener('click', async () => {
+      if (!ultimoResultadoLote) return;
+      await navigator.clipboard.writeText(JSON.stringify(ultimoResultadoLote, null, 2));
+      btnCopyJson.textContent = 'Copiado! ✓';
+      setTimeout(() => btnCopyJson.textContent = '📋 Copiar JSON', 1500);
+    });
+
+    btnExportCsv.addEventListener('click', () => {
+      if (!ultimoResultadoLote) return;
+      let csv = 'Senha,Status,Vazamentos_HIBP,Score,Entropia_Bits\n';
+      ultimoResultadoLote.relatorios.forEach(r => {
+        const status = r.vazamento.vazada ? 'VAZADA' : (r.valida ? 'SEGURA' : 'FRACA');
+        csv += `"${r.senha.replace(/"/g, '""')}",${status},${r.vazamento.ocorrencias},${r.score},${r.entropia_bits}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `auditoria_senhas_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
     });
   </script>
 </body>
