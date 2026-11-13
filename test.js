@@ -59,25 +59,37 @@ async function executarTestes() {
   console.assert(lote.comprometidas >= 1, 'Pelo menos 1 vazada');
   console.log(`   ✅ Lote processado: ${lote.validas} válidas, ${lote.comprometidas} comprometidas de ${lote.total}`);
 
-  // 8. Teste dos 5 Perfis do Gerador Criptográfico
+  // 8. Teste dos Perfis do Gerador Criptográfico
   console.log('\n8. Testando Perfis do Gerador Criptográfico...');
   const gForte = PassValidatorPro.gerar('forte', { comprimento: 20 });
   const gAlfa = PassValidatorPro.gerar('alfanumerica', { comprimento: 16 });
   const gPin = PassValidatorPro.gerar('pin', { comprimento: 6 });
   const gPron = PassValidatorPro.gerar('pronunciavel', { blocos: 3 });
+  const gPassphrase = PassValidatorPro.gerar('passphrase', { palavras: 4, separador: '.' });
   const gToken = PassValidatorPro.gerar('token', { bytes: 32 });
 
   console.assert(gForte.length === 20, 'Forte deve ter 20 chars');
   console.assert(/^[a-zA-Z0-9]+$/.test(gAlfa), 'Alfa deve ser alfanumérico');
   console.assert(/^\d{6}$/.test(gPin), 'PIN deve ter 6 dígitos');
   console.assert(gPron.includes('-'), 'Pronunciável deve ter separador');
+  console.assert(gPassphrase.includes('.'), 'Passphrase deve ter separador ponto');
   console.assert(gToken.startsWith('pass_'), 'Token deve ter prefixo padrão');
 
   console.log('   ✅ Forte:', gForte);
   console.log('   ✅ Alfanumérica:', gAlfa);
   console.log('   ✅ PIN:', gPin);
   console.log('   ✅ Pronunciável:', gPron);
+  console.log('   ✅ Passphrase (Diceware):', gPassphrase);
   console.log('   ✅ Token:', gToken);
+
+  // 8.1 Teste de Regras Empresariais Rígidas
+  const relEmpresaSemSimbolo = await PassValidatorPro.validar('Abcde12345', {
+    verificarVazamento: false,
+    regrasEmpresariais: true
+  });
+  console.assert(relEmpresaSemSimbolo.valida === false, 'Sem símbolo deve falhar com regras empresariais');
+  console.assert(relEmpresaSemSimbolo.criterios.regras_empresariais_atendidas === false, 'Critério corporativo falso');
+  console.log('   ✅ Regras empresariais ativadas barraram senha sem símbolo');
 
   // 9. Teste da API HTTP Worker (Cloudflare / Edge)
   console.log('\n9. Testando rotas do Worker HTTP...');

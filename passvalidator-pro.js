@@ -220,7 +220,8 @@ export class PassValidatorPro {
     const {
       verificarVazamento = true,
       tamanhoMinimo = 8,
-      dadosUsuario = null
+      dadosUsuario = null,
+      regrasEmpresariais = false
     } = opcoes;
 
     if (typeof senha !== 'string' || senha.length === 0) {
@@ -356,8 +357,16 @@ export class PassValidatorPro {
       sugestoes.push('Elimine sequências lineares do teclado numérico ou alfabético.');
     }
 
+    let atendeRegrasEmpresariais = true;
+    if (regrasEmpresariais) {
+      if (!temMinusculas || !temMaiusculas || !temNumeros || !temSimbolos) {
+        atendeRegrasEmpresariais = false;
+        motivos.push('Requisito corporativo rígido não atendido: deve conter obrigatoriamente minúsculas, maiúsculas, números e símbolos.');
+      }
+    }
+
     return {
-      valida: score >= 60 && !infoVazamento.vazada && comprimento >= tamanhoMinimo && violacoesDadosPessoais.length === 0,
+      valida: score >= 60 && !infoVazamento.vazada && comprimento >= tamanhoMinimo && violacoesDadosPessoais.length === 0 && atendeRegrasEmpresariais,
       score,
       nivel,
       entropia_bits: entropia.bits,
@@ -373,6 +382,7 @@ export class PassValidatorPro {
         tem_ano_recente: temAnoRecente,
         eh_leetspeak_fraco: ehLeetspeakFraco,
         contem_dados_pessoais: violacoesDadosPessoais.length > 0,
+        regras_empresariais_atendidas: atendeRegrasEmpresariais,
         nist_sp_800_63b: comprimento >= 8 && !infoVazamento.vazada && violacoesDadosPessoais.length === 0
       },
       vazamento: infoVazamento,
@@ -519,7 +529,42 @@ export class PassValidatorPro {
       return resultado;
     }
 
-    // 5. TOKEN CRIPTOGRÁFICO / API KEY
+    // 5. PASSPHRASE / DICEWARE (Frase-passe memorável)
+    if (perfil === 'passphrase' || perfil === 'diceware') {
+      const listaPadrao = [
+        'aurora', 'cometa', 'diamante', 'eclipse', 'falcao', 'galaxia', 'horizonte',
+        'jaguar', 'lanterna', 'miragem', 'neblina', 'oceano', 'planeta', 'quasar',
+        'raposa', 'satelite', 'tornado', 'universo', 'vulcao', 'safira', 'cristal',
+        'bussola', 'engrenagem', 'esfera', 'floresta', 'oasis', 'prisma', 'sabedoria'
+      ];
+      const palavras = Array.isArray(opcoes.listaPalavras) && opcoes.listaPalavras.length >= 5
+        ? opcoes.listaPalavras
+        : listaPadrao;
+
+      const qtd = Math.max(3, Math.min(8, opcoes.palavras || 4));
+      const separador = opcoes.separador || '-';
+      const partes = [];
+
+      for (let i = 0; i < qtd; i++) {
+        let p = palavras[this.secureRandomInt(palavras.length)];
+        if (opcoes.capitalizar !== false) {
+          p = p.charAt(0).toUpperCase() + p.slice(1);
+        }
+        partes.push(p);
+      }
+
+      let res = partes.join(separador);
+      if (opcoes.incluirNumero !== false) {
+        res += `${separador}${this.secureRandomInt(90) + 10}`;
+      }
+      if (opcoes.incluirSimbolo !== false) {
+        const simbolos = '!@#$%&*';
+        res += simbolos[this.secureRandomInt(simbolos.length)];
+      }
+      return res;
+    }
+
+    // 6. TOKEN CRIPTOGRÁFICO / API KEY
     if (perfil === 'token' || perfil === 'crypto_token') {
       const bytes = Math.max(16, Math.min(64, opcoes.bytes || 32));
       const array = new Uint8Array(bytes);
@@ -529,7 +574,7 @@ export class PassValidatorPro {
       return `${prefixo}${hex}`;
     }
 
-    throw new Error(`Perfil '${tipo}' desconhecido. Use: 'forte', 'alfanumerica', 'pin', 'pronunciavel' ou 'token'.`);
+    throw new Error(`Perfil '${tipo}' desconhecido. Use: 'forte', 'alfanumerica', 'pin', 'pronunciavel', 'passphrase' ou 'token'.`);
   }
 }
 

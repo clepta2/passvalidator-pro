@@ -10,6 +10,7 @@ export interface OpcoesValidacao {
   verificarVazamento?: boolean;
   tamanhoMinimo?: number;
   dadosUsuario?: DadosUsuario | null;
+  regrasEmpresariais?: boolean;
 }
 
 export interface InfoVazamento {
@@ -31,6 +32,7 @@ export interface CriteriosValidacao {
   tem_ano_recente: boolean;
   eh_leetspeak_fraco: boolean;
   contem_dados_pessoais: boolean;
+  regras_empresariais_atendidas?: boolean;
   nist_sp_800_63b: boolean;
 }
 
@@ -57,6 +59,9 @@ export interface OpcoesGerador {
   comprimento?: number;
   evitarAmbiguos?: boolean;
   blocos?: number;
+  palavras?: number;
+  listaPalavras?: string[];
+  capitalizar?: boolean;
   separador?: string;
   incluirNumero?: boolean;
   incluirSimbolo?: boolean;
@@ -64,7 +69,7 @@ export interface OpcoesGerador {
   prefixo?: string;
 }
 
-export type PerfilGerador = 'forte' | 'completa' | 'complex' | 'alfanumerica' | 'alphanumeric' | 'pin' | 'numerica' | 'pronunciavel' | 'pronounceable' | 'token' | 'crypto_token';
+export type PerfilGerador = 'forte' | 'completa' | 'complex' | 'alfanumerica' | 'alphanumeric' | 'pin' | 'numerica' | 'pronunciavel' | 'pronounceable' | 'passphrase' | 'diceware' | 'token' | 'crypto_token';
 
 export declare class PassValidatorPro {
   static sha1(str: string): Promise<string>;

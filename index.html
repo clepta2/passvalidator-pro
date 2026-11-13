@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -42,7 +42,7 @@
     }
 
     .container {
-      max-width: 900px;
+      max-width: 960px;
       width: 100%;
     }
 
@@ -78,7 +78,7 @@
     p.subtitle {
       color: var(--text-muted);
       font-size: 1.05rem;
-      max-width: 650px;
+      max-width: 680px;
       margin: 0 auto;
       line-height: 1.5;
     }
@@ -141,20 +141,26 @@
       align-items: center;
     }
 
-    input[type="text"], input[type="password"], select {
+    input[type="text"], input[type="password"], select, textarea {
       width: 100%;
       background: #0b1324;
       border: 1px solid #374151;
       color: var(--text);
       font-family: var(--font-mono);
-      font-size: 1.1rem;
-      padding: 0.9rem 1rem;
+      font-size: 1.05rem;
+      padding: 0.85rem 1rem;
       border-radius: 10px;
       outline: none;
       transition: border-color 0.2s;
     }
 
-    input:focus, select:focus {
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+      line-height: 1.5;
+    }
+
+    input:focus, select:focus, textarea:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
@@ -168,6 +174,36 @@
       cursor: pointer;
       font-size: 0.9rem;
       padding: 4px 8px;
+    }
+
+    /* Contexto de Usuário Opcional */
+    .user-context-box {
+      background: #0d1527;
+      border: 1px dashed #2d3748;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .user-context-title {
+      font-size: 0.825rem;
+      font-weight: 700;
+      color: #93c5fd;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .user-context-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .user-context-grid input {
+      font-size: 0.9rem;
+      padding: 0.5rem 0.75rem;
     }
 
     /* Medidor de Força */
@@ -260,7 +296,7 @@
       border: 1px solid #2563eb;
       font-family: var(--font-mono);
       font-size: 1.25rem;
-      padding: 1rem 3.5rem 1rem 1rem;
+      padding: 1rem 4rem 1rem 1rem;
       border-radius: 10px;
       word-break: break-all;
       color: #60a5fa;
@@ -296,7 +332,7 @@
       margin-bottom: 1.5rem;
     }
 
-    .btn-generate {
+    .btn-action {
       width: 100%;
       background: var(--primary);
       color: white;
@@ -309,7 +345,7 @@
       transition: background 0.2s;
     }
 
-    .btn-generate:hover {
+    .btn-action:hover {
       background: var(--primary-hover);
     }
 
@@ -322,6 +358,55 @@
     input[type="range"] {
       flex: 1;
       accent-color: var(--primary);
+    }
+
+    /* Tabela de Lote */
+    .batch-table-container {
+      margin-top: 1.5rem;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+
+    th {
+      background: #0c1222;
+      color: #9ca3af;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #1f2937;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid #1f2937;
+      font-family: var(--font-mono);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .status-badge.danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .status-badge.success {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.4);
     }
 
     footer {
@@ -345,22 +430,35 @@
       </div>
       <h1>PassValidator Pro</h1>
       <p class="subtitle">
-        Validação profunda contra <strong>850+ milhões de senhas vazadas</strong> via <em>k-Anonymity</em> (Have I Been Pwned) e gerador criptográfico com múltiplos perfis de proteção.
+        Validação profunda contra <strong>850+ milhões de senhas vazadas</strong> via <em>k-Anonymity</em> (Have I Been Pwned), proteção anti-engenharia social e gerador criptográfico multiperfil.
       </p>
     </header>
 
     <div class="tabs">
-      <button class="tab-btn active" id="tabValidarBtn">🔍 Validador & Auditoria de Senha</button>
-      <button class="tab-btn" id="tabGeradorBtn">⚡ Gerador de Senhas Multiperfil</button>
+      <button class="tab-btn active" id="tabValidarBtn">🔍 Validador & Auditoria</button>
+      <button class="tab-btn" id="tabGeradorBtn">⚡ Gerador Multiperfil</button>
+      <button class="tab-btn" id="tabLoteBtn">📊 Auditoria em Lote (Batch)</button>
     </div>
 
-    <!-- ABA 1: VALIDADOR -->
+    <!-- ABA 1: VALIDADOR INDIVIDUAL -->
     <div class="card" id="viewValidar">
       <div class="input-group">
         <label for="passwordInput">Digite uma senha para auditar em tempo real:</label>
         <div class="input-wrapper">
           <input type="password" id="passwordInput" placeholder="Ex: Digite sua senha de teste..." autocomplete="off">
           <button class="toggle-visibility-btn" id="toggleVisibility">👁️ Mostrar</button>
+        </div>
+      </div>
+
+      <!-- Contexto Opcional de Engenharia Social -->
+      <div class="user-context-box">
+        <div class="user-context-title">
+          👤 Proteção Anti-Engenharia Social (Dados do Usuário):
+        </div>
+        <div class="user-context-grid">
+          <input type="text" id="ctxNome" placeholder="Nome (ex: Carlos)">
+          <input type="text" id="ctxEmail" placeholder="E-mail (ex: carlos@empresa.com)">
+          <input type="text" id="ctxAno" placeholder="Ano de nascimento (ex: 1995)">
         </div>
       </div>
 
@@ -396,7 +494,7 @@
       </div>
     </div>
 
-    <!-- ABA 2: GERADOR -->
+    <!-- ABA 2: GERADOR MULTIPERFIL -->
     <div class="card" id="viewGerador" style="display: none;">
       <div class="generator-output">
         <div class="gen-display" id="generatedPassword">Clique em Gerar para criar...</div>
@@ -408,6 +506,7 @@
           <label for="profileSelect">Perfil de Proteção:</label>
           <select id="profileSelect">
             <option value="forte">Forte / Completa (NIST Enterprise)</option>
+            <option value="passphrase">Passphrase / Diceware (Frase Memorável)</option>
             <option value="alfanumerica">Alfanumérica (URL-Safe / Sem Símbolos)</option>
             <option value="pin">PIN Numérico (Cartão / 2FA)</option>
             <option value="pronunciavel">Pronunciável (Fácil de ditar)</option>
@@ -423,7 +522,33 @@
         </div>
       </div>
 
-      <button class="btn-generate" id="btnGenerate">⚡ Gerar Senha Segura Agora</button>
+      <button class="btn-action" id="btnGenerate">⚡ Gerar Senha Segura Agora</button>
+    </div>
+
+    <!-- ABA 3: AUDITORIA EM LOTE (BATCH) -->
+    <div class="card" id="viewLote" style="display: none;">
+      <div class="input-group">
+        <label for="batchTextarea">Cole uma lista de senhas (uma por linha):</label>
+        <textarea id="batchTextarea" placeholder="123456&#10;admin123&#10;Tx9#Kz2$Wp7!Lm8@&#10;P@ssw0rd2024!"></textarea>
+      </div>
+
+      <button class="btn-action" id="btnRunBatch">🚀 Iniciar Auditoria em Lote</button>
+
+      <div class="batch-table-container" id="batchResultContainer" style="display: none;">
+        <div style="margin: 1.5rem 0 1rem; font-weight: 700; color: #93c5fd;" id="batchSummary"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Senha</th>
+              <th>Status</th>
+              <th>Vazamentos (HIBP)</th>
+              <th>Score</th>
+              <th>Entropia</th>
+            </tr>
+          </thead>
+          <tbody id="batchTableBody"></tbody>
+        </table>
+      </div>
     </div>
 
     <footer>
@@ -435,29 +560,30 @@
   <script type="module">
     import { PassValidatorPro } from './passvalidator-pro.js';
 
-    // Tabs
-    const tabValidarBtn = document.getElementById('tabValidarBtn');
-    const tabGeradorBtn = document.getElementById('tabGeradorBtn');
-    const viewValidar = document.getElementById('viewValidar');
-    const viewGerador = document.getElementById('viewGerador');
+    // Navegação de Abas
+    const tabs = [
+      { btn: document.getElementById('tabValidarBtn'), view: document.getElementById('viewValidar') },
+      { btn: document.getElementById('tabGeradorBtn'), view: document.getElementById('viewGerador') },
+      { btn: document.getElementById('tabLoteBtn'), view: document.getElementById('viewLote') }
+    ];
 
-    tabValidarBtn.addEventListener('click', () => {
-      tabValidarBtn.classList.add('active');
-      tabGeradorBtn.classList.remove('active');
-      viewValidar.style.display = 'block';
-      viewGerador.style.display = 'none';
+    tabs.forEach(({ btn, view }) => {
+      btn.addEventListener('click', () => {
+        tabs.forEach(t => {
+          t.btn.classList.remove('active');
+          t.view.style.display = 'none';
+        });
+        btn.classList.add('active');
+        view.style.display = 'block';
+      });
     });
 
-    tabGeradorBtn.addEventListener('click', () => {
-      tabGeradorBtn.classList.add('active');
-      tabValidarBtn.classList.remove('active');
-      viewGerador.style.display = 'block';
-      viewValidar.style.display = 'none';
-    });
-
-    // Validador
+    // 1. Validador Individual
     const passwordInput = document.getElementById('passwordInput');
     const toggleVisibility = document.getElementById('toggleVisibility');
+    const ctxNome = document.getElementById('ctxNome');
+    const ctxEmail = document.getElementById('ctxEmail');
+    const ctxAno = document.getElementById('ctxAno');
     const meterBar = document.getElementById('meterBar');
     const meterText = document.getElementById('meterText');
     const scoreText = document.getElementById('scoreText');
@@ -479,7 +605,7 @@
       }
     });
 
-    passwordInput.addEventListener('input', () => {
+    function dispararValidacao() {
       clearTimeout(debounceTimer);
       const val = passwordInput.value;
 
@@ -495,14 +621,23 @@
         return;
       }
 
-      // Cálculo instantâneo local de entropia
       const ent = PassValidatorPro.calcularEntropia(val);
       statEntropy.textContent = `${ent.bits} bits`;
       statCrackTime.textContent = ent.tempoEstimadoQuebra;
       statHibp.textContent = 'Consultando...';
 
       debounceTimer = setTimeout(async () => {
-        const rep = await PassValidatorPro.validar(val, { verificarVazamento: true });
+        const dadosUsuario = {
+          nome: ctxNome.value.trim(),
+          email: ctxEmail.value.trim(),
+          anoNascimento: ctxAno.value.trim()
+        };
+
+        const rep = await PassValidatorPro.validar(val, {
+          verificarVazamento: true,
+          dadosUsuario
+        });
+
         scoreText.textContent = `Score: ${rep.score}/100`;
         meterBar.style.width = `${rep.score}%`;
 
@@ -527,18 +662,29 @@
           statHibp.style.color = 'var(--danger)';
           breachAlert.className = 'breach-alert danger';
           breachAlert.style.display = 'block';
-          breachAlert.innerHTML = `<strong>⚠️ ALERTA DE VAZAMENTO:</strong> Esta senha foi localizada <strong>${rep.vazamento.ocorrencias.toLocaleString('pt-BR')} vezes</strong> no banco público de credenciais vazadas (Have I Been Pwned). Hackers têm essa senha em listas de força bruta.`;
+          breachAlert.innerHTML = `<strong>⚠️ ALERTA DE VAZAMENTO:</strong> Esta senha foi localizada <strong>${rep.vazamento.ocorrencias.toLocaleString('pt-BR')} vezes</strong> no banco público de credenciais vazadas (Have I Been Pwned).`;
         } else if (rep.vazamento.verificada) {
           statHibp.textContent = '🛡️ Limpa (0 vazamentos)';
           statHibp.style.color = 'var(--success)';
           breachAlert.className = 'breach-alert safe';
           breachAlert.style.display = 'block';
-          breachAlert.innerHTML = `<strong>🛡️ Protegida:</strong> Nenhuma ocorrência desta senha foi encontrada na base do Have I Been Pwned.`;
+          breachAlert.innerHTML = `<strong>🛡️ Protegida:</strong> Nenhuma ocorrência desta senha foi encontrada no Have I Been Pwned.`;
         }
-      }, 350);
-    });
 
-    // Gerador
+        if (rep.motivos.length > 0 && !rep.vazamento.vazada) {
+          breachAlert.className = 'breach-alert danger';
+          breachAlert.style.display = 'block';
+          breachAlert.innerHTML = `<strong>⚠️ Alerta de Segurança:</strong> ${rep.motivos.join(' ')}`;
+        }
+      }, 300);
+    }
+
+    passwordInput.addEventListener('input', dispararValidacao);
+    ctxNome.addEventListener('input', dispararValidacao);
+    ctxEmail.addEventListener('input', dispararValidacao);
+    ctxAno.addEventListener('input', dispararValidacao);
+
+    // 2. Gerador Multiperfil
     const generatedPassword = document.getElementById('generatedPassword');
     const profileSelect = document.getElementById('profileSelect');
     const lengthRange = document.getElementById('lengthRange');
@@ -558,6 +704,11 @@
           lengthRange.max = 12;
           lengthRange.value = 6;
           lengthValue.textContent = '6';
+        } else if (p === 'passphrase') {
+          lengthRange.min = 3;
+          lengthRange.max = 6;
+          lengthRange.value = 4;
+          lengthValue.textContent = '4 palavras';
         } else {
           lengthRange.min = 8;
           lengthRange.max = 64;
@@ -569,14 +720,15 @@
     });
 
     lengthRange.addEventListener('input', () => {
-      lengthValue.textContent = lengthRange.value;
+      const p = profileSelect.value;
+      lengthValue.textContent = p === 'passphrase' ? `${lengthRange.value} palavras` : lengthRange.value;
       dispararGerador();
     });
 
     function dispararGerador() {
       const perfil = profileSelect.value;
       const comp = parseInt(lengthRange.value, 10);
-      const pass = PassValidatorPro.gerar(perfil, { comprimento: comp });
+      const pass = PassValidatorPro.gerar(perfil, { comprimento: comp, palavras: comp });
       generatedPassword.textContent = pass;
     }
 
@@ -593,8 +745,49 @@
       }, 1500);
     });
 
-    // Gerar primeira senha ao abrir
     dispararGerador();
+
+    // 3. Auditoria em Lote (Batch)
+    const batchTextarea = document.getElementById('batchTextarea');
+    const btnRunBatch = document.getElementById('btnRunBatch');
+    const batchResultContainer = document.getElementById('batchResultContainer');
+    const batchSummary = document.getElementById('batchSummary');
+    const batchTableBody = document.getElementById('batchTableBody');
+
+    btnRunBatch.addEventListener('click', async () => {
+      const linhas = batchTextarea.value.split('\n').map(l => l.trim()).filter(Boolean);
+      if (linhas.length === 0) {
+        alert('Insira ao menos uma senha para auditar.');
+        return;
+      }
+
+      btnRunBatch.disabled = true;
+      btnRunBatch.textContent = '⏳ Auditando lista contra 850M+ senhas...';
+
+      const resultado = await PassValidatorPro.validarLote(linhas, { verificarVazamento: true });
+
+      batchTableBody.innerHTML = '';
+      resultado.relatorios.forEach(r => {
+        const tr = document.createElement('tr');
+        const badgeClass = r.vazamento.vazada ? 'danger' : (r.valida ? 'success' : 'danger');
+        const badgeText = r.vazamento.vazada ? 'Vazada' : (r.valida ? 'Segura' : 'Fraca');
+
+        tr.innerHTML = `
+          <td>${r.senha}</td>
+          <td><span class="status-badge ${badgeClass}">${badgeText}</span></td>
+          <td>${r.vazamento.vazada ? r.vazamento.ocorrencias.toLocaleString('pt-BR') + 'x' : '0'}</td>
+          <td>${r.score}/100</td>
+          <td>${r.entropia_bits} bits</td>
+        `;
+        batchTableBody.appendChild(tr);
+      });
+
+      batchSummary.textContent = `Resultado da Auditoria: ${resultado.total} senhas analisadas · ${resultado.comprometidas} vazadas · ${resultado.validas} aprovadas.`;
+      batchResultContainer.style.display = 'block';
+
+      btnRunBatch.disabled = false;
+      btnRunBatch.textContent = '🚀 Iniciar Auditoria em Lote';
+    });
   </script>
 </body>
 </html>
