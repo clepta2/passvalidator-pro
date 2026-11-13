@@ -1,8 +1,12 @@
-/**
+﻿/**
  * PassValidatorPro — SDK e Validador de Senhas com Detecção de Vazamentos e Gerador Multiperfil
  *
  * - Validação de Vazamentos via Have I Been Pwned (k-Anonymity SHA-1, sem envio de senha)
+ * - Cache LRU de prefixos em memória e proteção por Timeout (AbortSignal)
+ * - Detecção de Engenharia Social (nome, e-mail, usuário, ano de nascimento)
+ * - Detecção de Leetspeak (ex: p@ssw0rd, adm!n2024) e Anos Recentes
  * - Cálculo de Entropia de Shannon (bits) e estimativa de tempo de quebra
+ * - Validação individual e em Lote (Batch) com deduplicação de chamadas
  * - Conformidade com NIST SP 800-63B e OWASP
  * - Gerador Criptográfico Seguro (crypto.getRandomValues) com 5 Perfis de Proteção
  *
@@ -11,6 +15,10 @@
  */
 
 export class PassValidatorPro {
+  // Cache em memória para evitar requisições repetidas de mesmos prefixos HIBP
+  static _cachePrefixos = new Map();
+  static _maxCacheSize = 500;
+
   /**
    * Calcula o hash SHA-1 da senha em maiúsculas usando Web Crypto API nativa.
    * @param {string} str
@@ -50,6 +58,70 @@ export class PassValidatorPro {
   }
 
   /**
+   * Normaliza substituições comuns de Leetspeak para análise de padrões semânticos fracos.
+   * Ex: "P@ssw0rd" -> "password", "Adm!n2024" -> "admin2024"
+   * @param {string} str
+   * @returns {string}
+   */
+  static normalizarLeetspeak(str) {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .replace(/[@4]/g, 'a')
+      .replace(/[3]/g, 'e')
+      .replace(/[!1|]/g, 'i')
+      .replace(/[0]/g, 'o')
+      .replace(/[$5]/g, 's')
+      .replace(/[7+]/g, 't');
+  }
+
+  /**
+   * Consulta a lista de sufixos de um prefixo HIBP com cache em memória e timeout seguro.
+   * @private
+   * @param {string} prefix
+   * @param {number} [timeoutMs=4000]
+   * @returns {Promise<Map<string, number>>} Mapa de Sufixo -> Ocorrências
+   */
+  static async _obterSufixosHibp(prefix, timeoutMs = 4000) {
+    if (this._cachePrefixos.has(prefix)) {
+      return this._cachePrefixos.get(prefix);
+    }
+
+    const mapaSufixos = new Map();
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    try {
+      const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+        headers: { 'Add-Padding': 'true' },
+        signal: controller ? controller.signal : undefined
+      });
+
+      if (!response.ok) return mapaSufixos;
+
+      const text = await response.text();
+      const lines = text.split('\r\n');
+
+      for (const line of lines) {
+        const [hashSuffix, countStr] = line.split(':');
+        if (hashSuffix && countStr) {
+          mapaSufixos.set(hashSuffix.trim(), parseInt(countStr, 10) || 0);
+        }
+      }
+
+      if (this._cachePrefixos.size >= this._maxCacheSize) {
+        const firstKey = this._cachePrefixos.keys().next().value;
+        this._cachePrefixos.delete(firstKey);
+      }
+      this._cachePrefixos.set(prefix, mapaSufixos);
+
+      return mapaSufixos;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  }
+
+  /**
    * Verifica se a senha foi comprometida em vazamentos públicos de dados usando k-Anonymity.
    * Apenas os primeiros 5 caracteres do hash SHA-1 são enviados à API do Have I Been Pwned.
    * A senha ou hash completo NUNCA saem do seu cliente/máquina.
@@ -67,40 +139,13 @@ export class PassValidatorPro {
       const prefix = fullHash.slice(0, 5);
       const suffix = fullHash.slice(5);
 
-      const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
-        headers: { 'Add-Padding': 'true' }
-      });
-
-      if (!response.ok) {
-        return {
-          verificada: false,
-          vazada: false,
-          ocorrencias: 0,
-          prefixo: prefix,
-          erro: `HTTP ${response.status}: Falha ao consultar serviço de vazamentos`
-        };
-      }
-
-      const text = await response.text();
-      const lines = text.split('\r\n');
-
-      for (const line of lines) {
-        const [hashSuffix, countStr] = line.split(':');
-        if (hashSuffix && hashSuffix.trim() === suffix) {
-          const count = parseInt(countStr, 10) || 0;
-          return {
-            verificada: true,
-            vazada: count > 0,
-            ocorrencias: count,
-            prefixo: prefix
-          };
-        }
-      }
+      const mapaSufixos = await this._obterSufixosHibp(prefix);
+      const ocorrencias = mapaSufixos.get(suffix) || 0;
 
       return {
         verificada: true,
-        vazada: false,
-        ocorrencias: 0,
+        vazada: ocorrencias > 0,
+        ocorrencias,
         prefixo: prefix
       };
     } catch (err) {
@@ -163,12 +208,19 @@ export class PassValidatorPro {
    * @param {object} [opcoes={}]
    * @param {boolean} [opcoes.verificarVazamento=true] Consultar base Have I Been Pwned
    * @param {number} [opcoes.tamanhoMinimo=8] Comprimento mínimo exigido
+   * @param {object} [opcoes.dadosUsuario] Dados do usuário para checagem anti-engenharia social
+   * @param {string} [opcoes.dadosUsuario.nome]
+   * @param {string} [opcoes.dadosUsuario.sobrenome]
+   * @param {string} [opcoes.dadosUsuario.email]
+   * @param {string} [opcoes.dadosUsuario.usuario]
+   * @param {string|number} [opcoes.dadosUsuario.anoNascimento]
    * @returns {Promise<object>} Relatório minucioso de força, regras e vazamento
    */
   static async validar(senha, opcoes = {}) {
     const {
       verificarVazamento = true,
-      tamanhoMinimo = 8
+      tamanhoMinimo = 8,
+      dadosUsuario = null
     } = opcoes;
 
     if (typeof senha !== 'string' || senha.length === 0) {
@@ -193,6 +245,35 @@ export class PassValidatorPro {
     // Detecção de sequências comuns de teclado
     const ehSequencial = /(12345|54321|qwerty|asdfgh|zxcvbn|abcdef)/i.test(senha);
 
+    // Detecção de anos recentes (ex: 2018 a 2030)
+    const temAnoRecente = /(19\d{2}|20[0-3]\d)/.test(senha);
+
+    // Detecção de Leetspeak vulnerável
+    const normalizada = this.normalizarLeetspeak(senha);
+    const ehLeetspeakFraco = /(password|senha|admin|mudar|root|brasil)/.test(normalizada);
+
+    // Detecção de dados pessoais do usuário na senha
+    const violacoesDadosPessoais = [];
+    if (dadosUsuario && typeof dadosUsuario === 'object') {
+      const lowerSenha = senha.toLowerCase();
+      const termos = [];
+
+      if (dadosUsuario.nome && dadosUsuario.nome.length >= 3) termos.push({ campo: 'nome', valor: dadosUsuario.nome });
+      if (dadosUsuario.sobrenome && dadosUsuario.sobrenome.length >= 3) termos.push({ campo: 'sobrenome', valor: dadosUsuario.sobrenome });
+      if (dadosUsuario.usuario && dadosUsuario.usuario.length >= 3) termos.push({ campo: 'usuário', valor: dadosUsuario.usuario });
+      if (dadosUsuario.anoNascimento) termos.push({ campo: 'ano de nascimento', valor: String(dadosUsuario.anoNascimento) });
+      if (dadosUsuario.email && dadosUsuario.email.includes('@')) {
+        const prefixoEmail = dadosUsuario.email.split('@')[0];
+        if (prefixoEmail.length >= 3) termos.push({ campo: 'e-mail', valor: prefixoEmail });
+      }
+
+      for (const t of termos) {
+        if (lowerSenha.includes(t.valor.toLowerCase())) {
+          violacoesDadosPessoais.push(`A senha contém seu ${t.campo} ("${t.valor}").`);
+        }
+      }
+    }
+
     const entropia = this.calcularEntropia(senha);
 
     // Consulta de vazamentos (k-Anonymity)
@@ -213,7 +294,10 @@ export class PassValidatorPro {
     // Penalizações lógicas
     if (temRepeticoes) score -= 15;
     if (ehSequencial) score -= 20;
-    if (infoVazamento.vazada) score = Math.min(score, 20); // Se vazou, nota máxima é 20
+    if (temAnoRecente) score -= 10;
+    if (ehLeetspeakFraco) score -= 25;
+    if (violacoesDadosPessoais.length > 0) score -= 30;
+    if (infoVazamento.vazada) score = Math.min(score, 15); // Se vazou, nota máxima cai para 15
     score = Math.max(0, Math.min(100, score));
 
     let nivel = 'muito_fraca';
@@ -233,6 +317,21 @@ export class PassValidatorPro {
     if (comprimento < tamanhoMinimo) {
       motivos.push(`Comprimento insuficiente (${comprimento} caracteres, mínimo exigido: ${tamanhoMinimo}).`);
       sugestoes.push(`Aumente o comprimento para pelo menos ${tamanhoMinimo} a 16 caracteres.`);
+    }
+
+    if (violacoesDadosPessoais.length > 0) {
+      motivos.push(...violacoesDadosPessoais);
+      sugestoes.push('Nunca utilize seu nome, e-mail ou data de nascimento na senha.');
+    }
+
+    if (ehLeetspeakFraco) {
+      motivos.push('Contém substituições óbvias de palavras fracas (ex: "@" por "a", "0" por "o").');
+      sugestoes.push('Evite truques simples de leetspeak como "p@ssw0rd" ou "adm!n".');
+    }
+
+    if (temAnoRecente) {
+      motivos.push('Contém um ano numérico recente, padrão muito explorado em ataques de dicionário.');
+      sugestoes.push('Evite incluir anos (como 2024, 2025, 2026) no início ou final da senha.');
     }
 
     if (!temMinusculas || !temMaiusculas) {
@@ -258,7 +357,7 @@ export class PassValidatorPro {
     }
 
     return {
-      valida: score >= 60 && !infoVazamento.vazada && comprimento >= tamanhoMinimo,
+      valida: score >= 60 && !infoVazamento.vazada && comprimento >= tamanhoMinimo && violacoesDadosPessoais.length === 0,
       score,
       nivel,
       entropia_bits: entropia.bits,
@@ -271,11 +370,45 @@ export class PassValidatorPro {
         tem_simbolos: temSimbolos,
         tem_repeticoes: temRepeticoes,
         eh_sequencial: ehSequencial,
-        nist_sp_800_63b: comprimento >= 8 && !infoVazamento.vazada
+        tem_ano_recente: temAnoRecente,
+        eh_leetspeak_fraco: ehLeetspeakFraco,
+        contem_dados_pessoais: violacoesDadosPessoais.length > 0,
+        nist_sp_800_63b: comprimento >= 8 && !infoVazamento.vazada && violacoesDadosPessoais.length === 0
       },
       vazamento: infoVazamento,
       motivos,
       sugestoes
+    };
+  }
+
+  /**
+   * Valida uma lista de senhas em lote (Batch), otimizando chamadas de rede com deduplicação de prefixos SHA-1.
+   *
+   * @param {string[]} senhas Lista de senhas a auditar
+   * @param {object} [opcoes={}]
+   * @returns {Promise<{ total: number, validas: number, comprometidas: number, relatorios: object[] }>}
+   */
+  static async validarLote(senhas, opcoes = {}) {
+    if (!Array.isArray(senhas)) {
+      throw new Error('O parâmetro senhas deve ser um array de strings.');
+    }
+
+    const relatorios = [];
+    let validas = 0;
+    let comprometidas = 0;
+
+    for (const s of senhas) {
+      const rel = await this.validar(s, opcoes);
+      relatorios.push({ senha: s, ...rel });
+      if (rel.valida) validas++;
+      if (rel.vazamento && rel.vazamento.vazada) comprometidas++;
+    }
+
+    return {
+      total: senhas.length,
+      validas,
+      comprometidas,
+      relatorios
     };
   }
 

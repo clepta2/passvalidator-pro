@@ -5,6 +5,7 @@
   "description": "SDK e API de Validação de Senhas com Detecção de Vazamentos (k-Anonymity HIBP 850M+ senhas) e Gerador Criptográfico Multiperfil.",
   "main": "passvalidator-pro.js",
   "module": "passvalidator-pro.js",
+  "types": "types/index.d.ts",
   "scripts": {
     "test": "node test.js"
   },

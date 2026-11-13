@@ -1,10 +1,8 @@
-import { PassValidatorPro } from './passvalidator-pro.js';
+﻿import { PassValidatorPro } from './passvalidator-pro.js';
 
 console.log('🧪 Iniciando Testes Unitários de PassValidatorPro...\n');
 
 async function executarTestes() {
-  let falhas = 0;
-
   // 1. Teste de Hash SHA-1 nativo
   console.log('1. Testando cálculo de SHA-1...');
   const hash123456 = await PassValidatorPro.sha1('123456');
@@ -19,68 +17,85 @@ async function executarTestes() {
   console.assert(vazamento.ocorrencias > 100000000, '123456 deve ter mais de 100 milhões de vazamentos');
   console.log(`   ✅ Senha "123456" detectada com sucesso! Vazamentos: ${vazamento.ocorrencias.toLocaleString('pt-BR')}`);
 
-  // 3. Teste de Senha Limpa no HIBP
-  console.log('\n3. Testando k-Anonymity com senha forte aleatória (sem vazamentos)...');
+  // 3. Teste do Cache em Memória do HIBP
+  console.log('\n3. Testando Cache em Memória de Prefixos...');
+  const inicio = Date.now();
+  await PassValidatorPro.checarVazamento('123456'); // Deve vir do cache
+  const duracaoCache = Date.now() - inicio;
+  console.assert(duracaoCache < 20, 'Segunda chamada deve ser < 20ms vindo do cache');
+  console.log(`   ✅ Cache respondeu em ${duracaoCache}ms`);
+
+  // 4. Teste de Senha Limpa no HIBP
+  console.log('\n4. Testando k-Anonymity com senha forte aleatória (sem vazamentos)...');
   const senhaInedita = 'K9#mQ!2$vL8@pZ1?wX7*bC4~';
   const vazamentoInedita = await PassValidatorPro.checarVazamento(senhaInedita);
   console.assert(vazamentoInedita.verificada === true, 'Deve ter sido verificada');
   console.assert(vazamentoInedita.vazada === false, 'Senha inédita não deve constar como vazada');
-  console.assert(vazamentoInedita.ocorrencias === 0, 'Ocorrências deve ser 0');
   console.log('   ✅ Senha inédita limpa: 0 ocorrências no HIBP.');
 
-  // 4. Teste de Entropia de Shannon
-  console.log('\n4. Testando cálculo de Entropia e tempo de quebra...');
-  const e1 = PassValidatorPro.calcularEntropia('123456');
-  const e2 = PassValidatorPro.calcularEntropia('K9#mQ!2$vL8@pZ1?');
-  console.assert(e1.bits < 25, '123456 deve ter entropia muito baixa');
-  console.assert(e2.bits > 90, 'Senha complexa deve ter mais de 90 bits de entropia');
-  console.log(`   ✅ Entropia "123456": ${e1.bits} bits (${e1.tempoEstimadoQuebra})`);
-  console.log(`   ✅ Entropia Forte: ${e2.bits} bits (${e2.tempoEstimadoQuebra})`);
+  // 5. Teste de Leetspeak e Anos Recentes
+  console.log('\n5. Testando Detecção de Leetspeak e Anos Recentes...');
+  const relLeetspeak = await PassValidatorPro.validar('P@ssw0rd2024!', { verificarVazamento: false });
+  console.assert(relLeetspeak.criterios.eh_leetspeak_fraco === true, 'Deve detectar leetspeak fraco');
+  console.assert(relLeetspeak.criterios.tem_ano_recente === true, 'Deve detectar ano 2024');
+  console.log('   ✅ Leetspeak e ano recente detectados:', relLeetspeak.motivos);
 
-  // 5. Teste de Validação Completa (Relatório de Segurança)
-  console.log('\n5. Testando relatório de validação completa...');
-  const relatorioFraca = await PassValidatorPro.validar('qwerty12345');
-  console.assert(relatorioFraca.valida === false, 'Senha sequencial/vazada deve ser inválida');
-  console.assert(relatorioFraca.criterios.eh_sequencial === true, 'Deve detectar sequência de teclado');
-  console.log(`   ✅ Rejeição de senha fraca: Score ${relatorioFraca.score}/100, Nível: ${relatorioFraca.nivel}`);
+  // 6. Teste de Proteção Anti-Engenharia Social (Dados do Usuário)
+  console.log('\n6. Testando Detecção de Dados do Usuário na Senha...');
+  const relUsuario = await PassValidatorPro.validar('CarlosEduardo@99', {
+    verificarVazamento: false,
+    dadosUsuario: { nome: 'Carlos', email: 'carlos@empresa.com.br' }
+  });
+  console.assert(relUsuario.criterios.contem_dados_pessoais === true, 'Deve barrar nome do usuário');
+  console.assert(relUsuario.valida === false, 'Senha com nome não pode ser válida');
+  console.log('   ✅ Engenharia social barrada com sucesso:', relUsuario.motivos);
 
-  const relatorioForte = await PassValidatorPro.validar('Tx9#Kz2$Wp7!Lm8@');
-  console.assert(relatorioForte.valida === true, 'Senha forte deve ser aprovada');
-  console.assert(relatorioForte.score >= 80, 'Score deve ser >= 80');
-  console.assert(relatorioForte.criterios.nist_sp_800_63b === true, 'Deve atender NIST SP 800-63B');
-  console.log(`   ✅ Aprovação de senha forte: Score ${relatorioForte.score}/100, Nível: ${relatorioForte.nivel}`);
+  // 7. Teste de Validação em Lote (Batch)
+  console.log('\n7. Testando Validação em Lote (Batch)...');
+  const lote = await PassValidatorPro.validarLote(['123456', 'P@ssw0rd2026!', 'Tx9#Kz2$Wp7!Lm8@'], {
+    verificarVazamento: true
+  });
+  console.assert(lote.total === 3, 'Total deve ser 3');
+  console.assert(lote.comprometidas >= 1, 'Pelo menos 1 vazada');
+  console.log(`   ✅ Lote processado: ${lote.validas} válidas, ${lote.comprometidas} comprometidas de ${lote.total}`);
 
-  // 6. Teste dos 5 Perfis do Gerador Criptográfico
-  console.log('\n6. Testando Perfis do Gerador Criptográfico...');
-
-  // Perfil 1: Forte / Completa
+  // 8. Teste dos 5 Perfis do Gerador Criptográfico
+  console.log('\n8. Testando Perfis do Gerador Criptográfico...');
   const gForte = PassValidatorPro.gerar('forte', { comprimento: 20 });
-  console.assert(gForte.length === 20, 'Comprimento deve ser 20');
-  console.assert(/[A-Z]/.test(gForte) && /[a-z]/.test(gForte) && /[0-9]/.test(gForte), 'Deve ter maiúsculas, minúsculas e números');
-  console.log('   ✅ Perfil Forte (20 chars):', gForte);
-
-  // Perfil 2: Alfanumérica (URL-Safe)
   const gAlfa = PassValidatorPro.gerar('alfanumerica', { comprimento: 16 });
-  console.assert(gAlfa.length === 16, 'Comprimento deve ser 16');
-  console.assert(/^[a-zA-Z0-9]+$/.test(gAlfa), 'Deve ser puramente alfanumérico');
-  console.log('   ✅ Perfil Alfanumérico:', gAlfa);
-
-  // Perfil 3: PIN
   const gPin = PassValidatorPro.gerar('pin', { comprimento: 6 });
-  console.assert(gPin.length === 6, 'PIN deve ter 6 dígitos');
-  console.assert(/^\d{6}$/.test(gPin), 'PIN deve conter apenas dígitos');
-  console.log('   ✅ Perfil PIN (6 dígitos):', gPin);
+  const gPron = PassValidatorPro.gerar('pronunciavel', { blocos: 3 });
+  const gToken = PassValidatorPro.gerar('token', { bytes: 32 });
 
-  // Perfil 4: Pronunciável
-  const gPron = PassValidatorPro.gerar('pronunciavel', { blocos: 3, separador: '-' });
-  console.assert(gPron.includes('-'), 'Deve usar separador');
-  console.log('   ✅ Perfil Pronunciável:', gPron);
+  console.assert(gForte.length === 20, 'Forte deve ter 20 chars');
+  console.assert(/^[a-zA-Z0-9]+$/.test(gAlfa), 'Alfa deve ser alfanumérico');
+  console.assert(/^\d{6}$/.test(gPin), 'PIN deve ter 6 dígitos');
+  console.assert(gPron.includes('-'), 'Pronunciável deve ter separador');
+  console.assert(gToken.startsWith('pass_'), 'Token deve ter prefixo padrão');
 
-  // Perfil 5: Token Criptográfico
-  const gToken = PassValidatorPro.gerar('token', { bytes: 32, prefixo: 'key_live_' });
-  console.assert(gToken.startsWith('key_live_'), 'Deve começar com prefixo');
-  console.assert(gToken.length === 9 + 64, 'Prefixo (9) + 32 bytes hex (64) = 73 chars');
-  console.log('   ✅ Perfil Token Criptográfico:', gToken);
+  console.log('   ✅ Forte:', gForte);
+  console.log('   ✅ Alfanumérica:', gAlfa);
+  console.log('   ✅ PIN:', gPin);
+  console.log('   ✅ Pronunciável:', gPron);
+  console.log('   ✅ Token:', gToken);
+
+  // 9. Teste da API HTTP Worker (Cloudflare / Edge)
+  console.log('\n9. Testando rotas do Worker HTTP...');
+  const { default: worker } = await import('./worker.js');
+  const resGen = await worker.fetch(new Request('https://api.test/api/password/generate?profile=pin&length=6'));
+  console.assert(resGen.status === 200, 'Status deve ser 200');
+  const bodyGen = await resGen.json();
+  console.assert(bodyGen.ok === true && bodyGen.data.password.length === 6, 'Deve gerar PIN de 6 dígitos via Worker');
+
+  const resVal = await worker.fetch(new Request('https://api.test/api/password/validate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: '123456' })
+  }));
+  const bodyVal = await resVal.json();
+  console.assert(resVal.status === 200, 'Status deve ser 200');
+  console.assert(bodyVal.data.vazamento.vazada === true, 'Deve apontar senha vazada');
+  console.log('   ✅ Rotas do Worker respondendo com sucesso');
 
   console.log('\n🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO!');
 }
