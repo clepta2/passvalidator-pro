@@ -1,0 +1,407 @@
+/**
+ * PassValidatorPro — SDK e Validador de Senhas com Detecção de Vazamentos e Gerador Multiperfil
+ *
+ * - Validação de Vazamentos via Have I Been Pwned (k-Anonymity SHA-1, sem envio de senha)
+ * - Cálculo de Entropia de Shannon (bits) e estimativa de tempo de quebra
+ * - Conformidade com NIST SP 800-63B e OWASP
+ * - Gerador Criptográfico Seguro (crypto.getRandomValues) com 5 Perfis de Proteção
+ *
+ * @license MIT
+ * @author clepta2 <clepta2@gmail.com>
+ */
+
+export class PassValidatorPro {
+  /**
+   * Calcula o hash SHA-1 da senha em maiúsculas usando Web Crypto API nativa.
+   * @param {string} str
+   * @returns {Promise<string>} Hash SHA-1 em hexadecimal maiúsculo
+   */
+  static async sha1(str) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+  }
+
+  /**
+   * Gera um inteiro aleatório criptograficamente seguro entre 0 e max - 1.
+   * @param {number} max
+   * @returns {number}
+   */
+  static secureRandomInt(max) {
+    if (max <= 0) return 0;
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return array[0] % max;
+  }
+
+  /**
+   * Embaralha um array de forma criptograficamente segura (Algoritmo Fisher-Yates).
+   * @param {Array} array
+   * @returns {Array}
+   */
+  static secureShuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = this.secureRandomInt(i + 1);
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  /**
+   * Verifica se a senha foi comprometida em vazamentos públicos de dados usando k-Anonymity.
+   * Apenas os primeiros 5 caracteres do hash SHA-1 são enviados à API do Have I Been Pwned.
+   * A senha ou hash completo NUNCA saem do seu cliente/máquina.
+   *
+   * @param {string} senha
+   * @returns {Promise<{ verificada: boolean, vazada: boolean, ocorrencias: number, prefixo: string, erro?: string }>}
+   */
+  static async checarVazamento(senha) {
+    if (!senha || typeof senha !== 'string') {
+      return { verificada: false, vazada: false, ocorrencias: 0, prefixo: '' };
+    }
+
+    try {
+      const fullHash = await this.sha1(senha);
+      const prefix = fullHash.slice(0, 5);
+      const suffix = fullHash.slice(5);
+
+      const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+        headers: { 'Add-Padding': 'true' }
+      });
+
+      if (!response.ok) {
+        return {
+          verificada: false,
+          vazada: false,
+          ocorrencias: 0,
+          prefixo: prefix,
+          erro: `HTTP ${response.status}: Falha ao consultar serviço de vazamentos`
+        };
+      }
+
+      const text = await response.text();
+      const lines = text.split('\r\n');
+
+      for (const line of lines) {
+        const [hashSuffix, countStr] = line.split(':');
+        if (hashSuffix && hashSuffix.trim() === suffix) {
+          const count = parseInt(countStr, 10) || 0;
+          return {
+            verificada: true,
+            vazada: count > 0,
+            ocorrencias: count,
+            prefixo: prefix
+          };
+        }
+      }
+
+      return {
+        verificada: true,
+        vazada: false,
+        ocorrencias: 0,
+        prefixo: prefix
+      };
+    } catch (err) {
+      return {
+        verificada: false,
+        vazada: false,
+        ocorrencias: 0,
+        prefixo: '',
+        erro: err.message
+      };
+    }
+  }
+
+  /**
+   * Calcula os bits de Entropia de Shannon e estima o tempo para quebra por força bruta.
+   * @param {string} senha
+   * @returns {{ bits: number, tamanhoConjunto: number, tempoEstimadoQuebra: string }}
+   */
+  static calcularEntropia(senha) {
+    if (!senha || typeof senha !== 'string') {
+      return { bits: 0, tamanhoConjunto: 0, tempoEstimadoQuebra: 'Instantâneo' };
+    }
+
+    let pool = 0;
+    if (/[a-z]/.test(senha)) pool += 26;
+    if (/[A-Z]/.test(senha)) pool += 26;
+    if (/[0-9]/.test(senha)) pool += 10;
+    if (/[^a-zA-Z0-9]/.test(senha)) pool += 33;
+
+    if (pool === 0) return { bits: 0, tamanhoConjunto: 0, tempoEstimadoQuebra: 'Instantâneo' };
+
+    const bits = Math.round(senha.length * Math.log2(pool) * 10) / 10;
+
+    // Suposição de ataque de força bruta offline em hardware especializado (100 bilhões de tentativas/s)
+    const taxaTentativasPorSegundo = 1e11;
+    const combinacoesPossiveis = Math.pow(2, bits);
+    const segundos = combinacoesPossiveis / (2 * taxaTentativasPorSegundo);
+
+    let tempoEstimado = 'Instantâneo (< 1 segundo)';
+    if (segundos < 1) tempoEstimado = 'Instantâneo (< 1 segundo)';
+    else if (segundos < 60) tempoEstimado = `${Math.round(segundos)} segundos`;
+    else if (segundos < 3600) tempoEstimado = `${Math.round(segundos / 60)} minutos`;
+    else if (segundos < 86400) tempoEstimado = `${Math.round(segundos / 3600)} horas`;
+    else if (segundos < 31536000) tempoEstimado = `${Math.round(segundos / 86400)} dias`;
+    else if (segundos < 31536000 * 100) tempoEstimado = `${Math.round(segundos / 31536000)} anos`;
+    else if (segundos < 31536000 * 1e6) tempoEstimado = `${Math.round(segundos / (31536000 * 1000))} mil anos`;
+    else tempoEstimado = 'Centenas de milhões de anos (Inviável quebrar)';
+
+    return {
+      bits,
+      tamanhoConjunto: pool,
+      tempoEstimadoQuebra: tempoEstimado
+    };
+  }
+
+  /**
+   * Realiza a validação completa de segurança de uma senha.
+   *
+   * @param {string} senha Senha a ser validada
+   * @param {object} [opcoes={}]
+   * @param {boolean} [opcoes.verificarVazamento=true] Consultar base Have I Been Pwned
+   * @param {number} [opcoes.tamanhoMinimo=8] Comprimento mínimo exigido
+   * @returns {Promise<object>} Relatório minucioso de força, regras e vazamento
+   */
+  static async validar(senha, opcoes = {}) {
+    const {
+      verificarVazamento = true,
+      tamanhoMinimo = 8
+    } = opcoes;
+
+    if (typeof senha !== 'string' || senha.length === 0) {
+      return {
+        valida: false,
+        score: 0,
+        nivel: 'muito_fraca',
+        motivos: ['A senha fornecida está vazia.'],
+        sugestoes: ['Insira uma senha válida com pelo menos 8 a 16 caracteres.']
+      };
+    }
+
+    const comprimento = senha.length;
+    const temMinusculas = /[a-z]/.test(senha);
+    const temMaiusculas = /[A-Z]/.test(senha);
+    const temNumeros = /[0-9]/.test(senha);
+    const temSimbolos = /[^a-zA-Z0-9]/.test(senha);
+
+    // Detecção de repetições sequenciais (ex: aaaa, 1111)
+    const temRepeticoes = /(.)\1{2,}/.test(senha);
+
+    // Detecção de sequências comuns de teclado
+    const ehSequencial = /(12345|54321|qwerty|asdfgh|zxcvbn|abcdef)/i.test(senha);
+
+    const entropia = this.calcularEntropia(senha);
+
+    // Consulta de vazamentos (k-Anonymity)
+    let infoVazamento = { verificada: false, vazada: false, ocorrencias: 0 };
+    if (verificarVazamento) {
+      infoVazamento = await this.checarVazamento(senha);
+    }
+
+    // Cálculo do Score (0 a 100)
+    let score = 0;
+    if (comprimento >= tamanhoMinimo) score += 20;
+    if (comprimento >= 12) score += 15;
+    if (comprimento >= 16) score += 15;
+    if (temMinusculas && temMaiusculas) score += 15;
+    if (temNumeros) score += 15;
+    if (temSimbolos) score += 20;
+
+    // Penalizações lógicas
+    if (temRepeticoes) score -= 15;
+    if (ehSequencial) score -= 20;
+    if (infoVazamento.vazada) score = Math.min(score, 20); // Se vazou, nota máxima é 20
+    score = Math.max(0, Math.min(100, score));
+
+    let nivel = 'muito_fraca';
+    if (score >= 80) nivel = 'excelente';
+    else if (score >= 60) nivel = 'forte';
+    else if (score >= 40) nivel = 'media';
+    else if (score >= 20) nivel = 'fraca';
+
+    const motivos = [];
+    const sugestoes = [];
+
+    if (infoVazamento.vazada) {
+      motivos.push(`Comprometida: encontrada ${infoVazamento.ocorrencias.toLocaleString('pt-BR')} vezes em listas públicas de senhas vazadas.`);
+      sugestoes.push('Esta senha é de conhecimento público de invasores cibernéticos. Não a utilize de forma alguma.');
+    }
+
+    if (comprimento < tamanhoMinimo) {
+      motivos.push(`Comprimento insuficiente (${comprimento} caracteres, mínimo exigido: ${tamanhoMinimo}).`);
+      sugestoes.push(`Aumente o comprimento para pelo menos ${tamanhoMinimo} a 16 caracteres.`);
+    }
+
+    if (!temMinusculas || !temMaiusculas) {
+      sugestoes.push('Misture letras maiúsculas e minúsculas.');
+    }
+
+    if (!temNumeros) {
+      sugestoes.push('Adicione dígitos numéricos.');
+    }
+
+    if (!temSimbolos) {
+      sugestoes.push('Adicione símbolos especiais (!, @, #, $, %, etc.).');
+    }
+
+    if (temRepeticoes) {
+      motivos.push('Contém caracteres repetidos em sequência (ex: "aaa", "111").');
+      sugestoes.push('Evite repetições consecutivas de um mesmo caractere.');
+    }
+
+    if (ehSequencial) {
+      motivos.push('Contém sequências óbvias de digitação (ex: "12345", "qwerty").');
+      sugestoes.push('Elimine sequências lineares do teclado numérico ou alfabético.');
+    }
+
+    return {
+      valida: score >= 60 && !infoVazamento.vazada && comprimento >= tamanhoMinimo,
+      score,
+      nivel,
+      entropia_bits: entropia.bits,
+      tempo_estimado_quebra: entropia.tempoEstimadoQuebra,
+      criterios: {
+        comprimento,
+        tem_minusculas: temMinusculas,
+        tem_maiusculas: temMaiusculas,
+        tem_numeros: temNumeros,
+        tem_simbolos: temSimbolos,
+        tem_repeticoes: temRepeticoes,
+        eh_sequencial: ehSequencial,
+        nist_sp_800_63b: comprimento >= 8 && !infoVazamento.vazada
+      },
+      vazamento: infoVazamento,
+      motivos,
+      sugestoes
+    };
+  }
+
+  /**
+   * Gerador Criptográfico de Senhas Multiperfil
+   *
+   * Perfis suportados:
+   * - 'forte' / 'completa': Padrão empresarial (maiúsculas, minúsculas, números, símbolos, sem ambíguos)
+   * - 'alfanumerica': Letras e números apenas (URL-safe, sem caracteres problemáticos para terminais)
+   * - 'pin': PIN numérico puro (bancos, cartões, 2FA)
+   * - 'pronunciavel': Padrão silábico fonético fácil de ler e ditar em voz alta
+   * - 'token': Chave criptográfica em hexadecimal ou base64url (para APIs e Webhooks)
+   *
+   * @param {'forte'|'alfanumerica'|'pin'|'pronunciavel'|'token'} [tipo='forte']
+   * @param {object} [opcoes={}]
+   * @returns {string} Senha gerada
+   */
+  static gerar(tipo = 'forte', opcoes = {}) {
+    const perfil = tipo.toLowerCase();
+
+    // 1. FORTE / COMPLETA (Enterprise Standard)
+    if (perfil === 'forte' || perfil === 'completa' || perfil === 'complex') {
+      const comprimento = Math.max(8, Math.min(128, opcoes.comprimento || 16));
+      const evitarAmbiguos = opcoes.evitarAmbiguos !== false; // padrão true (remove 0, O, 1, l, I)
+
+      let maiusc = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+      let minusc = 'abcdefghijkmnopqrstuvwxyz';
+      let nums = '23456789';
+      let simb = '!@#$%^&*()-_=+[]{}|;:,.<>?';
+
+      if (!evitarAmbiguos) {
+        maiusc += 'IO';
+        minusc += 'lo';
+        nums += '01';
+      }
+
+      // Garante pelo menos um caractere de cada conjunto
+      const resultado = [
+        maiusc[this.secureRandomInt(maiusc.length)],
+        minusc[this.secureRandomInt(minusc.length)],
+        nums[this.secureRandomInt(nums.length)],
+        simb[this.secureRandomInt(simb.length)]
+      ];
+
+      const todos = maiusc + minusc + nums + simb;
+      while (resultado.length < comprimento) {
+        resultado.push(todos[this.secureRandomInt(todos.length)]);
+      }
+
+      return this.secureShuffle(resultado).join('');
+    }
+
+    // 2. ALFANUMÉRICA (URL-Safe / Sem Símbolos)
+    if (perfil === 'alfanumerica' || perfil === 'alphanumeric') {
+      const comprimento = Math.max(8, Math.min(128, opcoes.comprimento || 16));
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      const resultado = [];
+      for (let i = 0; i < comprimento; i++) {
+        resultado.push(chars[this.secureRandomInt(chars.length)]);
+      }
+      return resultado.join('');
+    }
+
+    // 3. PIN NUMÉRICO (Bancos / 2FA)
+    if (perfil === 'pin' || perfil === 'numerica') {
+      const comprimento = Math.max(4, Math.min(16, opcoes.comprimento || 6));
+      let pin = '';
+      for (let i = 0; i < comprimento; i++) {
+        pin += this.secureRandomInt(10).toString();
+      }
+      // Rejeita PINs triviais (ex: 0000, 1111)
+      if (/^(.)\1+$/.test(pin) || pin === '1234' || pin === '123456') {
+        return this.gerar('pin', opcoes);
+      }
+      return pin;
+    }
+
+    // 4. PRONUNCIÁVEL (Padrão Silábico Consoante-Vogal)
+    if (perfil === 'pronunciavel' || perfil === 'pronounceable') {
+      const blocos = Math.max(2, Math.min(8, opcoes.blocos || 3));
+      const consoantes = 'bcdfghjklmnprstvwz';
+      const vogais = 'aeiou';
+      const partes = [];
+
+      for (let b = 0; b < blocos; b++) {
+        let silaba = '';
+        const tam = 2 + this.secureRandomInt(2); // 2 ou 3 letras
+        for (let i = 0; i < tam; i++) {
+          silaba += (i % 2 === 0)
+            ? consoantes[this.secureRandomInt(consoantes.length)]
+            : vogais[this.secureRandomInt(vogais.length)];
+        }
+        partes.push(silaba);
+      }
+
+      const separador = opcoes.separador || '-';
+      let resultado = partes.join(separador);
+
+      // Adiciona número e símbolo ao final para reforço de entropia
+      if (opcoes.incluirNumero !== false) {
+        resultado += `${separador}${this.secureRandomInt(90) + 10}`;
+      }
+      if (opcoes.incluirSimbolo !== false) {
+        const simbolos = '!@#$%&*';
+        resultado += simbolos[this.secureRandomInt(simbolos.length)];
+      }
+
+      return resultado;
+    }
+
+    // 5. TOKEN CRIPTOGRÁFICO / API KEY
+    if (perfil === 'token' || perfil === 'crypto_token') {
+      const bytes = Math.max(16, Math.min(64, opcoes.bytes || 32));
+      const array = new Uint8Array(bytes);
+      crypto.getRandomValues(array);
+      const hex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+      const prefixo = opcoes.prefixo || 'pass_';
+      return `${prefixo}${hex}`;
+    }
+
+    throw new Error(`Perfil '${tipo}' desconhecido. Use: 'forte', 'alfanumerica', 'pin', 'pronunciavel' ou 'token'.`);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.PassValidatorPro = PassValidatorPro;
+}
+
+export default PassValidatorPro;

@@ -1,0 +1,33 @@
+{
+  "name": "passvalidator-pro",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "SDK e API de Validação de Senhas com Detecção de Vazamentos (k-Anonymity HIBP 850M+ senhas) e Gerador Criptográfico Multiperfil.",
+  "main": "passvalidator-pro.js",
+  "module": "passvalidator-pro.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "password-validator",
+    "password-strength",
+    "pwned-passwords",
+    "haveibeenpwned",
+    "k-anonymity",
+    "entropy",
+    "nist-sp-800-63b",
+    "password-generator",
+    "security",
+    "sdk"
+  ],
+  "author": "clepta2 <clepta2@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clepta2/passvalidator-pro.git"
+  },
+  "bugs": {
+    "url": "https://github.com/clepta2/passvalidator-pro/issues"
+  },
+  "homepage": "https://github.com/clepta2/passvalidator-pro#readme"
+}

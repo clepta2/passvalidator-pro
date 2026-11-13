@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PassValidator Pro — Validador de Senhas Vazadas & Gerador Multiperfil</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --accent: #8b5cf6;
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.825rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 650px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      background: #0f172a;
+      padding: 0.35rem;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      margin-bottom: 2rem;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--card-bg);
+      color: var(--text);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      margin-bottom: 2rem;
+    }
+
+    .input-group {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #d1d5db;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="text"], input[type="password"], select {
+      width: 100%;
+      background: #0b1324;
+      border: 1px solid #374151;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      padding: 0.9rem 1rem;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .toggle-visibility-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 4px 8px;
+    }
+
+    /* Medidor de Força */
+    .meter-container {
+      margin-top: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .meter-bar-bg {
+      height: 8px;
+      background: #1f2937;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+
+    .meter-bar {
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease, background-color 0.3s ease;
+      border-radius: 9999px;
+    }
+
+    .meter-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* Grid de Estatísticas */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .stat-box {
+      background: #0c1222;
+      border: 1px solid #1e293b;
+      padding: 1rem;
+      border-radius: 10px;
+    }
+
+    .stat-label {
+      font-size: 0.775rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+    }
+
+    .stat-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    /* Alerta de Vazamento HIBP */
+    .breach-alert {
+      padding: 1rem;
+      border-radius: 10px;
+      margin-top: 1.5rem;
+      display: none;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .breach-alert.danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    .breach-alert.safe {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }
+
+    /* Gerador */
+    .generator-output {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .gen-display {
+      background: #090e1a;
+      border: 1px solid #2563eb;
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      padding: 1rem 3.5rem 1rem 1rem;
+      border-radius: 10px;
+      word-break: break-all;
+      color: #60a5fa;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-copy {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #1e3a8a;
+      border: 1px solid #3b82f6;
+      color: #bfdbfe;
+      padding: 0.5rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.8rem;
+      transition: background 0.2s;
+    }
+
+    .btn-copy:hover {
+      background: #2563eb;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn-generate {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.9rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-generate:hover {
+      background: var(--primary-hover);
+    }
+
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--primary);
+    }
+
+    footer {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: auto;
+    }
+
+    footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge-pill">
+        🛡️ Zero-Server Client-Side & Edge Ready
+      </div>
+      <h1>PassValidator Pro</h1>
+      <p class="subtitle">
+        Validação profunda contra <strong>850+ milhões de senhas vazadas</strong> via <em>k-Anonymity</em> (Have I Been Pwned) e gerador criptográfico com múltiplos perfis de proteção.
+      </p>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tabValidarBtn">🔍 Validador & Auditoria de Senha</button>
+      <button class="tab-btn" id="tabGeradorBtn">⚡ Gerador de Senhas Multiperfil</button>
+    </div>
+
+    <!-- ABA 1: VALIDADOR -->
+    <div class="card" id="viewValidar">
+      <div class="input-group">
+        <label for="passwordInput">Digite uma senha para auditar em tempo real:</label>
+        <div class="input-wrapper">
+          <input type="password" id="passwordInput" placeholder="Ex: Digite sua senha de teste..." autocomplete="off">
+          <button class="toggle-visibility-btn" id="toggleVisibility">👁️ Mostrar</button>
+        </div>
+      </div>
+
+      <div class="meter-container">
+        <div class="meter-bar-bg">
+          <div class="meter-bar" id="meterBar"></div>
+        </div>
+        <div class="meter-info">
+          <span id="meterText">Aguardando senha...</span>
+          <span id="scoreText">Score: 0/100</span>
+        </div>
+      </div>
+
+      <div class="breach-alert" id="breachAlert"></div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">Entropia (Shannon)</div>
+          <div class="stat-val" id="statEntropy">0 bits</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Tempo Estimado de Quebra</div>
+          <div class="stat-val" id="statCrackTime">-</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">NIST SP 800-63B</div>
+          <div class="stat-val" id="statNist">-</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Status no Pwned Passwords</div>
+          <div class="stat-val" id="statHibp">Não verificado</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 2: GERADOR -->
+    <div class="card" id="viewGerador" style="display: none;">
+      <div class="generator-output">
+        <div class="gen-display" id="generatedPassword">Clique em Gerar para criar...</div>
+        <button class="btn-copy" id="btnCopy">Copiar</button>
+      </div>
+
+      <div class="controls-grid">
+        <div>
+          <label for="profileSelect">Perfil de Proteção:</label>
+          <select id="profileSelect">
+            <option value="forte">Forte / Completa (NIST Enterprise)</option>
+            <option value="alfanumerica">Alfanumérica (URL-Safe / Sem Símbolos)</option>
+            <option value="pin">PIN Numérico (Cartão / 2FA)</option>
+            <option value="pronunciavel">Pronunciável (Fácil de ditar)</option>
+            <option value="token">Token Criptográfico (API Key 32 bytes)</option>
+          </select>
+        </div>
+
+        <div id="lengthControlGroup">
+          <label for="lengthRange">Comprimento: <strong id="lengthValue">16</strong> caracteres</label>
+          <div class="range-wrap">
+            <input type="range" id="lengthRange" min="8" max="64" value="16">
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-generate" id="btnGenerate">⚡ Gerar Senha Segura Agora</button>
+    </div>
+
+    <footer>
+      Desenvolvido para máxima privacidade com a <strong>Web Crypto API</strong> e <strong>Have I Been Pwned</strong>.<br>
+      Sua senha nunca sai do seu navegador. Licença MIT &copy; 2026 clepta2.
+    </footer>
+  </div>
+
+  <script type="module">
+    import { PassValidatorPro } from './passvalidator-pro.js';
+
+    // Tabs
+    const tabValidarBtn = document.getElementById('tabValidarBtn');
+    const tabGeradorBtn = document.getElementById('tabGeradorBtn');
+    const viewValidar = document.getElementById('viewValidar');
+    const viewGerador = document.getElementById('viewGerador');
+
+    tabValidarBtn.addEventListener('click', () => {
+      tabValidarBtn.classList.add('active');
+      tabGeradorBtn.classList.remove('active');
+      viewValidar.style.display = 'block';
+      viewGerador.style.display = 'none';
+    });
+
+    tabGeradorBtn.addEventListener('click', () => {
+      tabGeradorBtn.classList.add('active');
+      tabValidarBtn.classList.remove('active');
+      viewGerador.style.display = 'block';
+      viewValidar.style.display = 'none';
+    });
+
+    // Validador
+    const passwordInput = document.getElementById('passwordInput');
+    const toggleVisibility = document.getElementById('toggleVisibility');
+    const meterBar = document.getElementById('meterBar');
+    const meterText = document.getElementById('meterText');
+    const scoreText = document.getElementById('scoreText');
+    const breachAlert = document.getElementById('breachAlert');
+    const statEntropy = document.getElementById('statEntropy');
+    const statCrackTime = document.getElementById('statCrackTime');
+    const statNist = document.getElementById('statNist');
+    const statHibp = document.getElementById('statHibp');
+
+    let debounceTimer;
+
+    toggleVisibility.addEventListener('click', () => {
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleVisibility.textContent = '🔒 Ocultar';
+      } else {
+        passwordInput.type = 'password';
+        toggleVisibility.textContent = '👁️ Mostrar';
+      }
+    });
+
+    passwordInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const val = passwordInput.value;
+
+      if (!val) {
+        meterBar.style.width = '0%';
+        meterText.textContent = 'Aguardando senha...';
+        scoreText.textContent = 'Score: 0/100';
+        breachAlert.style.display = 'none';
+        statEntropy.textContent = '0 bits';
+        statCrackTime.textContent = '-';
+        statNist.textContent = '-';
+        statHibp.textContent = 'Não verificado';
+        return;
+      }
+
+      // Cálculo instantâneo local de entropia
+      const ent = PassValidatorPro.calcularEntropia(val);
+      statEntropy.textContent = `${ent.bits} bits`;
+      statCrackTime.textContent = ent.tempoEstimadoQuebra;
+      statHibp.textContent = 'Consultando...';
+
+      debounceTimer = setTimeout(async () => {
+        const rep = await PassValidatorPro.validar(val, { verificarVazamento: true });
+        scoreText.textContent = `Score: ${rep.score}/100`;
+        meterBar.style.width = `${rep.score}%`;
+
+        if (rep.score < 30) {
+          meterBar.style.backgroundColor = 'var(--danger)';
+          meterText.textContent = 'Muito Fraca 🔴';
+        } else if (rep.score < 60) {
+          meterBar.style.backgroundColor = 'var(--warning)';
+          meterText.textContent = 'Média 🟡';
+        } else if (rep.score < 80) {
+          meterBar.style.backgroundColor = 'var(--primary)';
+          meterText.textContent = 'Forte 🔵';
+        } else {
+          meterBar.style.backgroundColor = 'var(--success)';
+          meterText.textContent = 'Excelente 🟢';
+        }
+
+        statNist.textContent = rep.criterios.nist_sp_800_63b ? '✅ Conforme' : '❌ Não atende';
+
+        if (rep.vazamento.vazada) {
+          statHibp.textContent = `⚠️ Vazada (${rep.vazamento.ocorrencias.toLocaleString('pt-BR')}x)`;
+          statHibp.style.color = 'var(--danger)';
+          breachAlert.className = 'breach-alert danger';
+          breachAlert.style.display = 'block';
+          breachAlert.innerHTML = `<strong>⚠️ ALERTA DE VAZAMENTO:</strong> Esta senha foi localizada <strong>${rep.vazamento.ocorrencias.toLocaleString('pt-BR')} vezes</strong> no banco público de credenciais vazadas (Have I Been Pwned). Hackers têm essa senha em listas de força bruta.`;
+        } else if (rep.vazamento.verificada) {
+          statHibp.textContent = '🛡️ Limpa (0 vazamentos)';
+          statHibp.style.color = 'var(--success)';
+          breachAlert.className = 'breach-alert safe';
+          breachAlert.style.display = 'block';
+          breachAlert.innerHTML = `<strong>🛡️ Protegida:</strong> Nenhuma ocorrência desta senha foi encontrada na base do Have I Been Pwned.`;
+        }
+      }, 350);
+    });
+
+    // Gerador
+    const generatedPassword = document.getElementById('generatedPassword');
+    const profileSelect = document.getElementById('profileSelect');
+    const lengthRange = document.getElementById('lengthRange');
+    const lengthValue = document.getElementById('lengthValue');
+    const btnGenerate = document.getElementById('btnGenerate');
+    const btnCopy = document.getElementById('btnCopy');
+    const lengthControlGroup = document.getElementById('lengthControlGroup');
+
+    profileSelect.addEventListener('change', () => {
+      const p = profileSelect.value;
+      if (p === 'token') {
+        lengthControlGroup.style.display = 'none';
+      } else {
+        lengthControlGroup.style.display = 'block';
+        if (p === 'pin') {
+          lengthRange.min = 4;
+          lengthRange.max = 12;
+          lengthRange.value = 6;
+          lengthValue.textContent = '6';
+        } else {
+          lengthRange.min = 8;
+          lengthRange.max = 64;
+          lengthRange.value = 16;
+          lengthValue.textContent = '16';
+        }
+      }
+      dispararGerador();
+    });
+
+    lengthRange.addEventListener('input', () => {
+      lengthValue.textContent = lengthRange.value;
+      dispararGerador();
+    });
+
+    function dispararGerador() {
+      const perfil = profileSelect.value;
+      const comp = parseInt(lengthRange.value, 10);
+      const pass = PassValidatorPro.gerar(perfil, { comprimento: comp });
+      generatedPassword.textContent = pass;
+    }
+
+    btnGenerate.addEventListener('click', dispararGerador);
+
+    btnCopy.addEventListener('click', async () => {
+      const text = generatedPassword.textContent;
+      if (!text || text.includes('Clique em')) return;
+      await navigator.clipboard.writeText(text);
+      const originalText = btnCopy.textContent;
+      btnCopy.textContent = 'Copiado! ✓';
+      setTimeout(() => {
+        btnCopy.textContent = originalText;
+      }, 1500);
+    });
+
+    // Gerar primeira senha ao abrir
+    dispararGerador();
+  </script>
+</body>
+</html>
