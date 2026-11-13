@@ -60,7 +60,16 @@ export default {
     const apiKey = request.headers.get('x-api-key') ||
                    request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ||
                    url.searchParams.get('api_key') || '';
-    const isPro = String(apiKey).trim().length >= 16;
+    const cleanKey = String(apiKey).trim();
+    const isPro = Boolean(
+      cleanKey && (
+        cleanKey.startsWith('pas_live_') || 
+        cleanKey.startsWith('pas_pro_') || 
+        cleanKey.startsWith('pas_master_') || 
+        cleanKey.startsWith('pnt_live_') ||
+        (env && (env.API_KEY === cleanKey || env.PRO_KEY === cleanKey))
+      ) && cleanKey.length >= 16
+    );
     const clientIp = request.headers.get('CF-Connecting-IP') || request.headers.get('x-real-ip') || '127.0.0.1';
     const maxReqs = isPro ? 300 : 60;
     const rl = checkRateLimit(isPro ? apiKey : clientIp, maxReqs, 60000);
