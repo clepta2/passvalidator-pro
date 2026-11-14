@@ -1,11 +1,11 @@
 ﻿# 🛡️ PassValidator Pro — Validador de Senhas Vazadas & Gerador Multiperfil
 
-> **SDK Universal, CLI e Auditor de Senhas em Tempo Real com detecção de vazamentos via *k-Anonymity* contra a base do Have I Been Pwned (850M+ senhas), cálculo de Entropia Efetiva de Shannon e Gerador Criptográfico Seguro de 6 Perfis.**
+> **SDK Universal, CLI e Auditor de Senhas em Tempo Real com detecção de vazamentos via *k-Anonymity* contra a base do Have I Been Pwned (860M+ senhas), cálculo de Entropia Efetiva de Shannon e Gerador Criptográfico Seguro de 6 Perfis.**
 >
 > 🚀 **Zero Servidor Próprio / Zero Conta Cloudflare Necessária:** Opera 100% no cliente (Navegador), em linha de comando (CLI), em microsserviços Node.js ou Edge Anycast com privacidade matemática absoluta.
 
 [![Testes](https://img.shields.io/badge/Testes-100%25%20Aprovados-success.svg)](#)
-[![Base HIBP](https://img.shields.io/badge/Base-850M%2B%20Senhas%20Vazadas-red.svg)](#)
+[![Base HIBP](https://img.shields.io/badge/Base-860M%2B%20Senhas%20Vazadas-red.svg)](#)
 [![Privacidade](https://img.shields.io/badge/Privacidade-k--Anonymity%20SHA--1-blue.svg)](#)
 [![Perfis](https://img.shields.io/badge/Gerador-6%20Perfis%20de%20Proteção-emerald.svg)](#)
 [![CLI](https://img.shields.io/badge/CLI-Nativo%20Terminal-orange.svg)](#)

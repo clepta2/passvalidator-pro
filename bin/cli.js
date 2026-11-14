@@ -96,7 +96,7 @@ async function main() {
     const conteudo = fs.readFileSync(arquivo, 'utf-8');
     const linhas = conteudo.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
-    console.log(`\n${c.cyan}⏳ Auditando ${linhas.length} senhas contra a base HIBP (850M+ vazamentos)...${c.reset}\n`);
+    console.log(`\n${c.cyan}⏳ Auditando ${linhas.length} senhas contra a base HIBP (860M+ vazamentos)...${c.reset}\n`);
     const resultado = await PassValidatorPro.validarLote(linhas);
 
     console.log(`${c.bold}RESULTADO DA AUDITORIA:${c.reset}`);
@@ -137,7 +137,7 @@ async function main() {
     console.log(`\n${c.red}${c.bold}🚨 ALERTA DE VAZAMENTO:${c.reset}`);
     console.log(`${c.red}Esta senha foi encontrada ${relatorio.vazamento.ocorrencias.toLocaleString('pt-BR')} vezes no banco de credenciais vazadas (Have I Been Pwned).${c.reset}`);
   } else if (relatorio.vazamento.verificada) {
-    console.log(`\n${c.green}🛡️  Have I Been Pwned: Nenhuma ocorrência em 850M+ de senhas vazadas.${c.reset}`);
+    console.log(`\n${c.green}🛡️  Have I Been Pwned: Nenhuma ocorrência em 860M+ de senhas vazadas.${c.reset}`);
   }
 
   if (relatorio.cenarios_quebra) {

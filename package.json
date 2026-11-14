@@ -2,7 +2,7 @@
   "name": "passvalidator-pro",
   "version": "1.0.0",
   "type": "module",
-  "description": "SDK e API de Validação de Senhas com Detecção de Vazamentos (k-Anonymity HIBP 850M+ senhas) e Gerador Criptográfico Multiperfil.",
+  "description": "SDK e API de Validação de Senhas com Detecção de Vazamentos (k-Anonymity HIBP 860M+ senhas) e Gerador Criptográfico Multiperfil.",
   "main": "passvalidator-pro.js",
   "module": "passvalidator-pro.js",
   "types": "types/index.d.ts",
