@@ -129,6 +129,25 @@ async function executarTestes() {
   console.assert(bodyVal.data.vazamento.vazada === true, 'Deve apontar senha vazada');
   console.log('   ✅ Rotas do Worker respondendo com sucesso');
 
+  // 10. Teste de Consulta de Vazamentos por Domínio (Data, Nome e Volume HIBP)
+  console.log('\n10. Testando consulta de vazamentos do domínio no HIBP (adobe.com)...');
+  const vazamentosAdobe = await PassValidatorPro.consultarVazamentosDominio('usuario@adobe.com');
+  console.assert(vazamentosAdobe.totalVazamentos >= 1, 'Adobe deve ter pelo menos 1 vazamento registrado');
+  console.assert(vazamentosAdobe.vazamentos.some(v => v.nome === 'Adobe'), 'Deve conter breach da Adobe');
+  const breach = vazamentosAdobe.vazamentos.find(v => v.nome === 'Adobe');
+  console.assert(Boolean(breach.dataVazamento), 'Deve conter data do vazamento');
+  console.log(`   ✅ Incidentes encontrados para ${vazamentosAdobe.dominio}: ${vazamentosAdobe.totalVazamentos}`);
+  console.log(`      Incidente: ${breach.titulo} | Data: ${breach.dataVazamento} | Contas: ${breach.contasAfetadas.toLocaleString('pt-BR')} | Expôs senhas: ${breach.exposSenhas}`);
+
+  // 11. Teste de Auditoria Forense Combinada (Credential Stuffing: E-mail + Senha)
+  console.log('\n11. Testando Auditoria Forense Combinada (E-mail + Senha)...');
+  const auditoriaCombo = await PassValidatorPro.auditarCredencial('vitima@adobe.com', '123456');
+  console.assert(auditoriaCombo.riscoCombo === 'CRITICO', 'Senha 123456 em domínio com breach deve ser CRITICO');
+  console.assert(auditoriaCombo.senhaAuditada.vazada === true, 'Senha deve constar como vazada');
+  console.assert(auditoriaCombo.vazamentosDominio.totalIncidentes >= 1, 'Deve conter histórico de incidentes');
+  console.log(`   ✅ Credential Stuffing detectado! Risco: ${auditoriaCombo.riscoCombo}`);
+  console.log(`      Motivo: ${auditoriaCombo.motivoRisco}`);
+
   console.log('\n🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO!');
 }
 

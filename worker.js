@@ -188,14 +188,76 @@ export default {
       }
     }
 
+    // 7. Rota: Consulta de Vazamentos Históricos por Domínio/Provedor
+    if (path === '/api/vazamentos/dominio' || path === '/api/breaches' || path === '/api/password/breaches') {
+      const dominio = url.searchParams.get('domain') || url.searchParams.get('dominio') || url.searchParams.get('email') || '';
+      if (!dominio) {
+        return new Response(JSON.stringify({
+          ok: false,
+          error: 'Informe o parâmetro domain ou email (ex: /api/vazamentos/dominio?domain=adobe.com)'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+        });
+      }
+
+      const dadosVazamento = await PassValidatorPro.consultarVazamentosDominio(dominio);
+      return new Response(JSON.stringify({
+        ok: true,
+        data: dadosVazamento
+      }, null, 2), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'public, max-age=86400, s-maxage=604800',
+          ...CORS_HEADERS
+        }
+      });
+    }
+
+    // 8. Rota: Auditoria Forense Completa de Credencial (E-mail + Senha)
+    if (path === '/api/password/auditar-credencial' || path === '/api/credencial/auditar') {
+      let email = '';
+      let senha = '';
+
+      if (request.method === 'POST') {
+        try {
+          const body = await request.json();
+          email = body.email || body.usuario || '';
+          senha = body.password || body.senha || '';
+        } catch (_) {}
+      } else {
+        email = url.searchParams.get('email') || '';
+        senha = url.searchParams.get('password') || url.searchParams.get('senha') || '';
+      }
+
+      if (!senha) {
+        return new Response(JSON.stringify({
+          ok: false,
+          error: 'Informe a senha para auditar (parâmetro password).'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+        });
+      }
+
+      const parecerForense = await PassValidatorPro.auditarCredencial(email, senha);
+      return new Response(JSON.stringify(parecerForense, null, 2), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+      });
+    }
+
     // Rota Raiz: Documentação rápida
     return new Response(JSON.stringify({
       api: 'PassValidator Pro API',
       status: 'online',
-      version: '1.0.0',
-      description: 'API de Borda Anycast de Validação e Geração Criptográfica de Senhas.',
+      version: '1.2.0',
+      description: 'API de Borda Anycast de Validação de Senhas, Análise Forense de Vazamentos (HIBP) e Gerador Criptográfico.',
       endpoints: [
         { method: 'POST', path: '/api/password/validate', body: { password: 'sua_senha_aqui' } },
+        { method: 'POST', path: '/api/password/auditar-credencial', body: { email: 'usuario@empresa.com', password: 'sua_senha_aqui' } },
+        { method: 'GET', path: '/api/vazamentos/dominio?domain=adobe.com' },
         { method: 'GET', path: '/api/password/generate?profile=forte&length=16' },
         { method: 'POST', path: '/api/password/lote', body: { passwords: ['senha1', 'senha2'] } }
       ]

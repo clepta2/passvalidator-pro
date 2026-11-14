@@ -801,7 +801,7 @@
         if (rep.vazamento.vazada) {
           breachAlert.className = 'breach-alert danger';
           breachAlert.style.display = 'block';
-          breachAlert.innerHTML = `<strong>⚠️ ALERTA DE VAZAMENTO:</strong> Esta senha foi localizada <strong>${rep.vazamento.ocorrencias.toLocaleString('pt-BR')} vezes</strong> no banco público de credenciais vazadas (Have I Been Pwned).`;
+          breachAlert.innerHTML = `<strong>⚠️ ALERTA DE VAZAMENTO DE SENHA:</strong> Esta senha foi localizada <strong>${rep.vazamento.ocorrencias.toLocaleString('pt-BR')} vezes</strong> no banco público de senhas expostas (Have I Been Pwned).`;
         } else if (rep.motivos.length > 0) {
           breachAlert.className = 'breach-alert danger';
           breachAlert.style.display = 'block';
@@ -810,6 +810,36 @@
           breachAlert.className = 'breach-alert safe';
           breachAlert.style.display = 'block';
           breachAlert.innerHTML = `<strong>🛡️ Protegida:</strong> Nenhuma ocorrência desta senha foi encontrada no Have I Been Pwned e ela atende aos padrões NIST SP 800-63B.`;
+        }
+
+        // Auditoria Combinada (E-mail + Senha): Identifica vazamentos do provedor/empresa e datas
+        const emailVal = ctxEmail.value.trim();
+        if (emailVal && emailVal.includes('@')) {
+          try {
+            const combo = await PassValidatorPro.auditarCredencial(emailVal, val);
+            if (combo.vazamentosDominio && combo.vazamentosDominio.totalIncidentes > 0) {
+              const itensHtml = combo.vazamentosDominio.incidentes.map(b => `
+                <div style="margin-top:6px;padding:8px 10px;background:rgba(0,0,0,0.25);border-radius:6px;font-size:0.8rem;line-height:1.4;">
+                  🏢 <strong>${b.titulo}</strong> — Data do Vazamento: <strong>${b.dataVazamento}</strong> (${b.contasAfetadas.toLocaleString('pt-BR')} contas afetadas)<br>
+                  <span style="opacity:0.85;">Dados expostos: ${b.dadosVazados.join(', ')}</span>
+                </div>
+              `).join('');
+
+              if (combo.riscoCombo === 'CRITICO') {
+                breachAlert.className = 'breach-alert danger';
+              }
+
+              breachAlert.innerHTML += `
+                <div style="margin-top:12px;border-top:1px dashed rgba(255,255,255,0.25);padding-top:10px;">
+                  <strong>📅 Vazamentos Históricos Confirmados do Provedor (@${combo.dominio}):</strong>
+                  ${itensHtml}
+                  <div style="margin-top:8px;font-size:0.825rem;font-weight:600;">
+                    🛡️ Recomendação Forense: ${combo.recomendacao}
+                  </div>
+                </div>
+              `;
+            }
+          } catch (_) {}
         }
       }, 300);
     }

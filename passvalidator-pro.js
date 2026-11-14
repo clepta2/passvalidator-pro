@@ -43,6 +43,7 @@ const DICIONARIO_DICEWARE_PADRAO = [
 
 export class PassValidatorPro {
   static _cachePrefixos = new Map();
+  static _cacheBreaches = new Map();
   static _maxCacheSize = 500;
 
   /**
@@ -212,6 +213,131 @@ export class PassValidatorPro {
         erro: err.message
       };
     }
+  }
+
+  /**
+   * Consulta vazamentos históricos de um domínio ou provedor de e-mail no catálogo oficial HIBP.
+   * Retorna os nomes das empresas, datas dos incidentes, total de contas e tipos de dados expostos.
+   * @param {string} emailOuDominio E-mail completo ou domínio da empresa
+   * @returns {Promise<{ dominio: string, totalVazamentos: number, vazamentos: Array<{ nome: string, titulo: string, dominio: string, dataVazamento: string, dataAdicao: string, contasAfetadas: number, dadosVazados: string[], descricao: string, logoUrl: string, exposSenhas: boolean }> }>}
+   */
+  static async consultarVazamentosDominio(emailOuDominio) {
+    if (!emailOuDominio || typeof emailOuDominio !== 'string') {
+      return { dominio: '', totalVazamentos: 0, vazamentos: [] };
+    }
+
+    let dominio = emailOuDominio.trim().toLowerCase();
+    if (dominio.includes('@')) {
+      dominio = dominio.split('@')[1];
+    }
+    dominio = dominio.replace(/^https?:\/\//i, '').split('/')[0];
+
+    if (this._cacheBreaches.has(dominio)) {
+      return this._cacheBreaches.get(dominio);
+    }
+
+    try {
+      const resp = await fetch(`https://haveibeenpwned.com/api/v3/breaches?domain=${encodeURIComponent(dominio)}`, {
+        headers: { 'User-Agent': 'PassValidatorPro-Edge/1.2' },
+        signal: AbortSignal.timeout(4500)
+      });
+
+      if (!resp.ok) {
+        const vazio = { dominio, totalVazamentos: 0, vazamentos: [] };
+        this._cacheBreaches.set(dominio, vazio);
+        return vazio;
+      }
+
+      const rawBreaches = await resp.json();
+      const vazamentos = Array.isArray(rawBreaches) ? rawBreaches.map(b => ({
+        nome: b.Name,
+        titulo: b.Title,
+        dominio: b.Domain,
+        dataVazamento: b.BreachDate,
+        dataAdicao: b.AddedDate,
+        contasAfetadas: b.PwnCount,
+        dadosVazados: b.DataClasses || [],
+        descricao: (b.Description || '').replace(/<[^>]+>/g, '').trim(),
+        logoUrl: b.LogoPath || `https://logos.haveibeenpwned.com/${encodeURIComponent(b.Name)}.png`,
+        exposSenhas: Array.isArray(b.DataClasses) && b.DataClasses.some(dc => /password/i.test(dc))
+      })) : [];
+
+      const res = {
+        dominio,
+        totalVazamentos: vazamentos.length,
+        vazamentos
+      };
+
+      if (this._cacheBreaches.size >= 300) {
+        const first = this._cacheBreaches.keys().next().value;
+        this._cacheBreaches.delete(first);
+      }
+      this._cacheBreaches.set(dominio, res);
+
+      return res;
+    } catch (_) {
+      return { dominio, totalVazamentos: 0, vazamentos: [] };
+    }
+  }
+
+  /**
+   * Auditoria forense combinada de credencial (E-mail + Senha).
+   * Identifica se a senha é conhecida e se o domínio/serviço tem histórico de breach com senhas expostas e datas.
+   * @param {string} email
+   * @param {string} senha
+   * @returns {Promise<object>}
+   */
+  static async auditarCredencial(email, senha) {
+    const [checarVaz, vazDom, relatorio] = await Promise.all([
+      this.checarVazamento(senha),
+      this.consultarVazamentosDominio(email),
+      this.validar(senha, { dadosUsuario: email ? { email } : null, verificarVazamento: false })
+    ]);
+
+    const isSenhaVazada = checarVaz.vazada;
+    const temHistoricoBreach = vazDom.totalVazamentos > 0;
+    const vazamentoComSenha = vazDom.vazamentos.filter(v => v.exposSenhas);
+
+    let riscoCombo = 'BAIXO';
+    let motivoRisco = 'Nenhum indício crítico de vazamento combinado localizado.';
+    let recomendacao = 'Credencial considerada segura para uso.';
+
+    if (isSenhaVazada && vazamentoComSenha.length > 0) {
+      riscoCombo = 'CRITICO';
+      motivoRisco = `ALERTA DE CREDENTIAL STUFFING: A senha informada consta em ${checarVaz.ocorrencias.toLocaleString('pt-BR')} vazamentos públicos E o domínio "${vazDom.dominio}" possui histórico de ${vazamentoComSenha.length} incidente(s) com exposição de senhas.`;
+      recomendacao = 'Bloquear credencial imediatamente e exigir redefinição forçada de senha com autenticação multifator (MFA/2FA).';
+    } else if (isSenhaVazada) {
+      riscoCombo = 'ALTO';
+      motivoRisco = `A senha informada consta em ${checarVaz.ocorrencias.toLocaleString('pt-BR')} vazamentos públicos globais, embora o provedor direto não tenha breach de senhas catalogado.`;
+      recomendacao = 'Trocar a senha por uma combinação inédita que nunca tenha vazado.';
+    } else if (temHistoricoBreach) {
+      riscoCombo = 'MEDIO';
+      motivoRisco = `O domínio "${vazDom.dominio}" possui histórico de ${vazDom.totalVazamentos} vazamento(s) de dados, mas a senha atual informada é inédita e não consta no banco de senhas vazadas.`;
+      recomendacao = 'Manter senha forte e monitorar novas ocorrências de vazamento do serviço.';
+    }
+
+    return {
+      ok: true,
+      email: email || null,
+      dominio: vazDom.dominio || null,
+      riscoCombo,
+      motivoRisco,
+      recomendacao,
+      senhaAuditada: {
+        vazada: isSenhaVazada,
+        ocorrencias: checarVaz.ocorrencias,
+        scoreForca: relatorio.score,
+        nivelForca: relatorio.nivel,
+        entropiaBits: relatorio.entropia_bits,
+        tempoEstimadoQuebra: relatorio.tempo_estimado_quebra
+      },
+      vazamentosDominio: {
+        totalIncidentes: vazDom.totalVazamentos,
+        incidentesComExposicaoSenha: vazamentoComSenha.length,
+        incidentes: vazDom.vazamentos
+      },
+      timestamp: new Date().toISOString()
+    };
   }
 
   /**
