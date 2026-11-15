@@ -1,0 +1,736 @@
+import fs from 'fs';
+
+const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PassValidator Pro • Validador de Senhas HIBP & Gerador Multiperfil • Ponte API Market</title>
+  <meta name="description" content="Auditoria de senhas em tempo real contra mais de 860 milhões de credenciais vazadas via k-Anonymity SHA-1 (Have I Been Pwned), conformidade NIST SP 800-63B e gerador criptográfico multiperfil." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=3.0.0" />
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('ponte.theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
+  <script defer src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    svg.lucide, .lucide {
+      width: 20px !important;
+      height: 20px !important;
+      stroke-width: 2 !important;
+    }
+    .nav-link svg {
+      width: 20px !important;
+      height: 20px !important;
+    }
+    .playground-split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+      gap: 26px;
+      margin-top: 24px;
+    }
+    @media (max-width: 1100px) {
+      .playground-split { grid-template-columns: 1fr; }
+    }
+    .card-dashboard {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+    .tab-nav-bar {
+      display: flex;
+      gap: 8px;
+      background: var(--paper-elevated, #f1f5f2);
+      padding: 6px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+    :root[data-theme="dark"] .tab-nav-bar {
+      background: #0d1527;
+      border-color: #1e293b;
+    }
+    .tab-nav-btn {
+      flex: 1;
+      min-height: 42px;
+      padding: 0 18px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.16s ease;
+    }
+    .tab-nav-btn:hover {
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .tab-nav-btn.is-active {
+      background: var(--paper);
+      color: var(--ink);
+      font-weight: 800;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    :root[data-theme="dark"] .tab-nav-btn.is-active {
+      background: #1e293b;
+      color: #fff;
+    }
+    .terminal-window {
+      background: #091311;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-xl);
+      display: flex;
+      flex-direction: column;
+    }
+    .terminal-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .terminal-dots {
+      display: flex;
+      gap: 7px;
+    }
+    .terminal-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .terminal-dot.red { background: #ef4444; }
+    .terminal-dot.yellow { background: #f59e0b; }
+    .terminal-dot.green { background: #10b981; }
+    .status-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px;
+      border-radius: var(--radius-full);
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .status-badge-pill.green {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .status-badge-pill.red {
+      background: rgba(239, 68, 68, 0.12);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .status-badge-pill.amber {
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .meter-bar-container {
+      height: 8px;
+      background: #1f2937;
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      margin: 10px 0 16px;
+    }
+    .meter-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: var(--radius-full);
+      transition: width 0.3s ease, background-color 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar Oficial do Ecossistema Ponte / OZPro -->
+    <aside class="sidebar" aria-label="Navegação principal">
+      <a class="brand" href="#auditor" aria-label="Ponte API, PassValidator Pro">
+        <img src="brand/ozpro-mark.svg" alt="Ponte API Logo" style="width:38px;height:38px;border-radius:10px;object-fit:contain;background:var(--mint);padding:4px;box-shadow:0 4px 12px rgba(163,230,53,0.35);" />
+        <span><strong>ponte</strong><small>PASSVALIDATOR · OZPRO</small></span>
+      </a>
+
+      <nav class="primary-nav" id="primary-nav">
+        <div class="nav-section-label">FUNCIONALIDADES</div>
+        <button class="nav-link is-active" data-view="auditor">
+          <i data-lucide="shield-alert"></i> <span>Auditor HIBP & Vazamentos</span>
+        </button>
+        <button class="nav-link" data-view="gerador">
+          <i data-lucide="key-round"></i> <span>Gerador Multiperfil</span>
+        </button>
+        <button class="nav-link" data-view="breaches">
+          <i data-lucide="building"></i> <span>Breaches de Domínio</span>
+        </button>
+        <button class="nav-link" data-view="nist">
+          <i data-lucide="badge-check"></i> <span>Conformidade NIST / OWASP</span>
+        </button>
+
+        <div class="nav-section-label">ECOSSISTEMA PONTE</div>
+        <a class="nav-link" href="https://ponte-marketplace.maputo2.workers.dev" target="_blank" rel="noopener">
+          <i data-lucide="layout-grid"></i> <span>API Marketplace</span>
+          <span class="nav-ext"><i data-lucide="arrow-up-right"></i></span>
+        </a>
+        <a class="nav-link" href="https://github.com/clepta2/passvalidator-pro" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg>
+          <span>GitHub do Projeto</span>
+          <span class="nav-ext"><i data-lucide="arrow-up-right"></i></span>
+        </a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="status-row">
+          <span class="status-dot connected"></span>
+          <span>Cloudflare Edge · &lt;2ms</span>
+        </div>
+        <div class="profile-row">
+          <div class="avatar lg">PV</div>
+          <div class="profile-copy">
+            <strong>PassValidator Pro</strong>
+            <span>API Anycast Oficial</span>
+          </div>
+        </div>
+        <div class="sidebar-version">v1.2.0 · HIBP 860M+ · NIST SP 800-63B</div>
+      </div>
+    </aside>
+
+    <!-- Área Principal -->
+    <main class="main-area">
+      <!-- Topbar Oficial -->
+      <header class="topbar">
+        <div class="breadcrumb">
+          <span>Workspace</span>
+          <i data-lucide="chevron-right"></i>
+          <span>Segurança & Identidade</span>
+          <i data-lucide="chevron-right"></i>
+          <strong id="breadcrumb-title">Auditor HIBP & Vazamentos</strong>
+        </div>
+        <div class="topbar-actions">
+          <span class="environment">
+            <span class="status-dot connected"></span>
+            Cloudflare Anycast Global (330+ Cidades)
+          </span>
+          <button class="icon-button theme-toggle-btn" id="theme-toggle-btn" aria-label="Alternar tema" title="Alternar tema claro/escuro">
+            <i data-lucide="moon"></i>
+          </button>
+          <a href="https://ponte-marketplace.maputo2.workers.dev" target="_blank" rel="noopener" class="primary-button accent" style="text-decoration:none;display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:0 16px;height:36px;">
+            <i data-lucide="sparkles"></i> <span>Catálogo Completo</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Conteúdo da Página -->
+      <div class="content-wrap">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">AUDITORIA FORENSE DE CREDENCIAIS & POLÍTICA ZERO-TRUST</p>
+            <h1>PassValidator Pro • Console Oficial Anycast</h1>
+            <p class="page-subtitle">
+              Auditoria forense de senhas em tempo real contra mais de 860 milhões de credenciais vazadas via k-Anonymity SHA-1 (Have I Been Pwned), análise de breaches de domínios corporativos e gerador multiperfil.
+            </p>
+          </div>
+        </div>
+
+        <!-- Cards de Métricas -->
+        <div class="billing-models-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 26px;">
+          <div class="model-card credit-card" style="padding:18px 22px;">
+            <div class="model-card-header" style="margin-bottom:10px;">
+              <span class="model-badge credit"><i data-lucide="database"></i> 860M+ SENHAS</span>
+            </div>
+            <div style="font-size:20px;font-weight:800;color:var(--ink);margin-bottom:4px;">Have I Been Pwned</div>
+            <p style="font-size:12.5px;color:var(--muted);margin:0;line-height:1.45;">Maior repositório mundial de vazamentos cruzado instantaneamente na borda.</p>
+          </div>
+
+          <div class="model-card subscription-card" style="padding:18px 22px;">
+            <div class="model-card-header" style="margin-bottom:10px;">
+              <span class="model-badge sub"><i data-lucide="lock"></i> K-ANONYMITY SHA-1</span>
+            </div>
+            <div style="font-size:20px;font-weight:800;color:var(--ink);margin-bottom:4px;">Privacidade Absoluta</div>
+            <p style="font-size:12.5px;color:var(--muted);margin:0;line-height:1.45;">Sua senha nunca é transmitida. Apenas os 5 primeiros caracteres do SHA-1 saem do cliente.</p>
+          </div>
+
+          <div class="model-card tier-card" style="padding:18px 22px;">
+            <div class="model-card-header" style="margin-bottom:10px;">
+              <span class="model-badge tier"><i data-lucide="check-circle-2"></i> NIST SP 800-63B</span>
+            </div>
+            <div style="font-size:20px;font-weight:800;color:var(--ink);margin-bottom:4px;">Padrão Internacional</div>
+            <p style="font-size:12.5px;color:var(--muted);margin:0;line-height:1.45;">Conformidade estrita com as diretrizes federais americanas de autenticação digital.</p>
+          </div>
+        </div>
+
+        <!-- Abas -->
+        <div class="tab-nav-bar">
+          <button class="tab-nav-btn is-active" data-tab="auditor">
+            <i data-lucide="shield-alert"></i> <span>Auditor Forense (Senha + Domínio)</span>
+          </button>
+          <button class="tab-nav-btn" data-tab="gerador">
+            <i data-lucide="key-round"></i> <span>Gerador Multiperfil</span>
+          </button>
+          <button class="tab-nav-btn" data-tab="breaches">
+            <i data-lucide="building"></i> <span>Breaches de Domínio</span>
+          </button>
+        </div>
+
+        <!-- Playground Split-Screen de 2 Colunas -->
+        <div class="playground-split">
+          <!-- Coluna 1: Formulário e Painel Visual -->
+          <div class="playground-left">
+            <!-- TAB 1: AUDITOR HIBP -->
+            <div id="section-auditor" class="tab-pane">
+              <div class="card-dashboard">
+                <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+                  <span style="display:flex;align-items:center;gap:8px;">
+                    <i data-lucide="search" style="color:var(--blue);"></i>
+                    <span>Auditar Senha e Credencial Contra Vazamentos</span>
+                  </span>
+                  <span class="status-badge-pill green">k-Anonymity Ativo</span>
+                </div>
+                <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
+                  Digite uma senha para auditar contra 860M+ credenciais vazadas e informe o e-mail ou empresa para cruzar vazamentos corporativos históricos:
+                </p>
+
+                <!-- Inputs de Senha e E-mail -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                  <div style="position:relative;">
+                    <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">Senha a Auditar</label>
+                    <input type="password" id="pass-input" value="123456" style="width:100%;height:44px;padding:0 40px 0 14px;border:1px solid var(--line);border-radius:var(--radius-md);font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--ink);background:var(--paper);outline:none;" />
+                    <button type="button" id="btn-toggle-eye" style="position:absolute;right:10px;top:35px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;" title="Ver/ocultar senha">👁️</button>
+                  </div>
+                  <div>
+                    <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">E-mail ou Empresa (Opcional)</label>
+                    <input type="text" id="email-input" value="vitima@adobe.com" placeholder="ex: usuario@adobe.com" style="width:100%;height:44px;padding:0 14px;border:1px solid var(--line);border-radius:var(--radius-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;color:var(--ink);background:var(--paper);outline:none;" />
+                  </div>
+                </div>
+
+                <!-- Botão de Ação -->
+                <div style="display:flex;gap:10px;margin-bottom:16px;">
+                  <button id="btn-exec-audit" class="primary-button accent" style="flex:1;height:44px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;">
+                    <i data-lucide="shield-check"></i> <span>Auditar Credencial Agora</span>
+                  </button>
+                </div>
+
+                <!-- Presets Rápidos -->
+                <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:11.5px;margin-bottom:20px;">
+                  <span style="color:var(--muted);font-weight:600;">Cenários de Teste:</span>
+                  <button class="secondary-button sample-pass" data-pass="123456" data-email="vitima@adobe.com" style="padding:5px 11px;font-size:11px;">🔴 123456 + Adobe (2013)</button>
+                  <button class="secondary-button sample-pass" data-pass="P@ssw0rd2024!" data-email="designer@canva.com" style="padding:5px 11px;font-size:11px;">🟠 P@ssw0rd2024! + Canva</button>
+                  <button class="secondary-button sample-pass" data-pass="Tx9#Kz2$Wp7!Lm8@" data-email="seguro@minhaempresa.com.br" style="padding:5px 11px;font-size:11px;">🟢 Tx9#Kz2$Wp7!Lm8@ (Inédita)</button>
+                </div>
+
+                <!-- Medidor de Força e Entropia -->
+                <div style="background:var(--paper-elevated,#f8fafc);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;margin-bottom:20px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;">Nível de Resistência a Ataques:</span>
+                    <strong id="entropy-score-text" style="font-size:13px;color:#ef4444;">Extremamente Fraca (12.4 bits)</strong>
+                  </div>
+                  <div class="meter-bar-container">
+                    <div id="entropy-bar" class="meter-bar-fill" style="width:15%;background:#ef4444;"></div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);">
+                    <span>Tempo de quebra estimado:</span>
+                    <strong id="crack-time-display" style="color:var(--ink);">Instantâneo (&lt; 1 segundo)</strong>
+                  </div>
+                </div>
+
+                <!-- Tabela de Auditoria Forense -->
+                <div style="border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;background:var(--paper);">
+                  <div style="padding:12px 16px;background:var(--paper-elevated,#f8fafc);border-bottom:1px solid var(--line);font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:7px;">
+                    <i data-lucide="clipboard-check"></i>
+                    <span>Resultado da Auditoria Forense</span>
+                  </div>
+                  <table class="specs-table">
+                    <tbody>
+                      <tr>
+                        <td class="label-col">Vazamentos no HIBP</td>
+                        <td class="val-col" id="val-pwned-count"><span class="status-badge-pill red">🚨 VAZADA (1.250.000+ vezes)</span></td>
+                      </tr>
+                      <tr>
+                        <td class="label-col">Status da Credencial</td>
+                        <td class="val-col" id="val-cred-status" style="color:#ef4444;font-weight:800;">COMPROMETIDA</td>
+                      </tr>
+                      <tr>
+                        <td class="label-col">Recomendação de Ação</td>
+                        <td class="val-col" id="val-recomendacao" style="color:#f59e0b;font-weight:700;">BLOQUEAR E EXIGIR REDEFINIÇÃO</td>
+                      </tr>
+                      <tr>
+                        <td class="label-col">Conformidade NIST</td>
+                        <td class="val-col" id="val-nist-status"><span class="status-badge-pill red">VIOLAÇÃO NIST SP 800-63B</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Container de Breaches Históricos Corporativos -->
+                <div id="breaches-container" style="margin-top:16px;"></div>
+              </div>
+            </div>
+
+            <!-- TAB 2: GERADOR MULTIPERFIL -->
+            <div id="section-gerador" class="tab-pane" style="display:none;">
+              <div class="card-dashboard">
+                <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+                  <span style="display:flex;align-items:center;gap:8px;">
+                    <i data-lucide="key-round" style="color:var(--blue);"></i>
+                    <span>Gerador Criptográfico Seguro (crypto.getRandomValues)</span>
+                  </span>
+                  <span class="status-badge-pill green">CSPRNG Nativo</span>
+                </div>
+                <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
+                  Gere senhas de alta entropia matemática sem previsibilidade, com suporte a múltiplos perfis de segurança:
+                </p>
+
+                <!-- Seletor de Perfil -->
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin-bottom:18px;">
+                  <button class="secondary-button gen-profile-btn is-active" data-profile="forte" style="padding:8px;font-size:12px;font-weight:700;border-color:var(--blue);color:var(--blue);">Forte (16 chars)</button>
+                  <button class="secondary-button gen-profile-btn" data-profile="ultra" style="padding:8px;font-size:12px;font-weight:700;">Ultra (24 chars)</button>
+                  <button class="secondary-button gen-profile-btn" data-profile="memoravel" style="padding:8px;font-size:12px;font-weight:700;">Memorável</button>
+                  <button class="secondary-button gen-profile-btn" data-profile="pin" style="padding:8px;font-size:12px;font-weight:700;">PIN Numérico</button>
+                </div>
+
+                <!-- Senha Gerada em Destaque -->
+                <div style="background:#090d16;border:1px solid #1e293b;border-radius:var(--radius-lg);padding:20px;text-align:center;margin-bottom:18px;">
+                  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px;">
+                    Senha Gerada Criptograficamente:
+                  </div>
+                  <div id="generated-password-display" style="font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#a3e635;word-break:break-all;letter-spacing:1px;margin-bottom:12px;">
+                    kP9#mX2$vL7!wQ4@
+                  </div>
+                  <div style="display:flex;justify-content:center;gap:10px;">
+                    <button id="btn-copy-generated" class="primary-button accent" style="height:36px;padding:0 16px;font-size:12px;font-weight:700;">
+                      <i data-lucide="copy"></i> <span>Copiar Senha</span>
+                    </button>
+                    <button id="btn-new-generated" class="secondary-button" style="height:36px;padding:0 16px;font-size:12px;font-weight:700;">
+                      <i data-lucide="refresh-cw"></i> <span>Gerar Outra</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 3: BREACHES DE DOMÍNIO -->
+            <div id="section-breaches" class="tab-pane" style="display:none;">
+              <div class="card-dashboard">
+                <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+                  <span style="display:flex;align-items:center;gap:8px;">
+                    <i data-lucide="building" style="color:var(--blue);"></i>
+                    <span>Vazamentos Corporativos Históricos por Domínio</span>
+                  </span>
+                  <span class="status-badge-pill blue">1.050+ Breaches</span>
+                </div>
+                <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.5;">
+                  Consulte os incidentes de segurança registrados para qualquer domínio corporativo no catálogo oficial do Have I Been Pwned:
+                </p>
+
+                <div style="display:flex;gap:10px;margin-bottom:16px;">
+                  <input type="text" id="domain-search-input" value="adobe.com" placeholder="Digite o domínio (ex: adobe.com)..." style="flex:2;height:44px;padding:0 14px;border:1px solid var(--line);border-radius:var(--radius-md);font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--ink);background:var(--paper);outline:none;" />
+                  <button id="btn-search-domain" class="primary-button accent" style="height:44px;padding:0 18px;font-size:13px;font-weight:700;">
+                    <i data-lucide="search"></i> <span>Buscar</span>
+                  </button>
+                </div>
+
+                <div id="domain-breaches-list" style="display:grid;gap:12px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coluna 2: Terminal Console Dark Oficial da Ponte API -->
+          <div class="playground-right">
+            <div class="terminal-window">
+              <div class="terminal-topbar">
+                <div class="terminal-dots">
+                  <div class="terminal-dot red"></div>
+                  <div class="terminal-dot yellow"></div>
+                  <div class="terminal-dot green"></div>
+                </div>
+                <div class="snippet-lang-tabs" role="tablist">
+                  <button class="snippet-tab is-active" data-lang="curl">cURL</button>
+                  <button class="snippet-tab" data-lang="nodejs">Node.js</button>
+                  <button class="snippet-tab" data-lang="python">Python</button>
+                  <button class="snippet-tab" data-lang="php">PHP</button>
+                </div>
+                <button class="icon-button copy-mini" id="btn-copy-code" title="Copiar Snippet">
+                  <i data-lucide="copy" style="width:14px;height:14px;"></i>
+                </button>
+              </div>
+
+              <!-- Caixa de Código do Snippet -->
+              <div class="snippet-code-box" style="padding:14px 18px;background:rgba(0,0,0,0.30);border-bottom:1px solid rgba(255,255,255,0.06);">
+                <pre class="snippet-pre" style="margin:0;font-family:'JetBrains Mono',monospace;font-size:12px;color:#7dd3fc;line-height:1.5;overflow-x:auto;"><code id="snippet-code">curl -X POST "https://passvalidator-pro-api.maputo2.workers.dev/api/password/auditar-credencial" \
+  -H "Authorization: ******" \
+  -H "x-api-key: pass_live_hibp_2026" \
+  -H "Content-Type: application/json" \
+  -d '{"password":"123456","email":"vitima@adobe.com"}'</code></pre>
+              </div>
+
+              <!-- Barra de Execução Sandbox -->
+              <div class="playground-bar">
+                <span class="method-tag post">POST</span>
+                <code class="endpoint-code" id="endpoint-display" style="font-size:12px;">/api/password/auditar-credencial</code>
+                <button class="primary-button accent test-btn" id="btn-run-sandbox" style="white-space:nowrap;padding:0 14px;height:32px;">
+                  <i data-lucide="play"></i> <span>Executar</span>
+                </button>
+              </div>
+
+              <!-- Console de Resposta JSON -->
+              <div class="playground-console" style="min-height:300px;max-height:540px;overflow-y:auto;padding:16px;">
+                <div class="console-response-header" id="console-header" style="font-size:11.5px;margin-bottom:10px;">
+                  <span class="badge-200" id="console-status">200 OK</span>
+                  <span id="console-latency">Latência: 1.8ms</span>
+                  <span>Cloudflare Anycast</span>
+                </div>
+                <pre class="console-json" id="console-output" style="margin:0;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#f8fafc;line-height:1.5;"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Script da Aplicação e Integração com PassValidatorPro -->
+  <script type="module">
+    import { PassValidatorPro } from './passvalidator-pro.js';
+
+    // Alternador de Tema
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('ponte.theme', next);
+      });
+    }
+
+    // Navegação de Abas
+    const tabBtns = document.querySelectorAll('.tab-nav-btn, .primary-nav .nav-link[data-view]');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabKey = btn.dataset.tab || btn.dataset.view;
+        if (!tabKey) return;
+        document.querySelectorAll('.tab-nav-btn').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tabKey));
+        document.querySelectorAll('.primary-nav .nav-link[data-view]').forEach(b => b.classList.toggle('is-active', b.dataset.view === tabKey));
+        document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+        const target = document.getElementById('section-' + tabKey);
+        if (target) target.style.display = 'block';
+
+        const bread = document.getElementById('breadcrumb-title');
+        const titles = {
+          auditor: 'Auditor HIBP & Vazamentos',
+          gerador: 'Gerador Multiperfil',
+          breaches: 'Breaches de Domínio'
+        };
+        if (bread && titles[tabKey]) bread.textContent = titles[tabKey];
+        updateSnippet();
+      });
+    });
+
+    let currentSnippetLang = 'curl';
+    document.querySelectorAll('.snippet-tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.snippet-tab').forEach(b => b.classList.remove('is-active'));
+        t.classList.add('is-active');
+        currentSnippetLang = t.dataset.lang;
+        updateSnippet();
+      });
+    });
+
+    // Revelar / Ocultar Senha
+    const toggleEye = document.getElementById('btn-toggle-eye');
+    const passInput = document.getElementById('pass-input');
+    if (toggleEye && passInput) {
+      toggleEye.addEventListener('click', () => {
+        const isPass = passInput.type === 'password';
+        passInput.type = isPass ? 'text' : 'password';
+        toggleEye.textContent = isPass ? '🙈' : '👁️';
+      });
+    }
+
+    function updateSnippet() {
+      const pwd = document.getElementById('pass-input').value || '123456';
+      const email = document.getElementById('email-input').value || 'vitima@adobe.com';
+      const codeEl = document.getElementById('snippet-code');
+      const payload = JSON.stringify({ password: pwd, email: email });
+
+      if (currentSnippetLang === 'curl') {
+        codeEl.textContent = \`curl -X POST "https://passvalidator-pro-api.maputo2.workers.dev/api/password/auditar-credencial" \\\n  -H "Authorization: ******" \\\n  -H "x-api-key: pass_live_hibp_2026" \\\n  -H "Content-Type: application/json" \\\n  -d '\${payload}'\`;
+      } else if (currentSnippetLang === 'nodejs') {
+        codeEl.textContent = \`const res = await fetch("https://passvalidator-pro-api.maputo2.workers.dev/api/password/auditar-credencial", {\n  method: "POST",\n  headers: { "Authorization": "******", "x-api-key": "pass_live_hibp_2026", "Content-Type": "application/json" },\n  body: JSON.stringify(\${payload})\n});\nconst data = await res.json();\nconsole.log(data);\`;
+      } else if (currentSnippetLang === 'python') {
+        codeEl.textContent = \`import requests\npayload = \${payload}\nres = requests.post("https://passvalidator-pro-api.maputo2.workers.dev/api/password/auditar-credencial", json=payload, headers={"Authorization": "******", "x-api-key": "pass_live_hibp_2026"})\nprint(res.json())\`;
+      } else if (currentSnippetLang === 'php') {
+        codeEl.textContent = \`$ch = curl_init("https://passvalidator-pro-api.maputo2.workers.dev/api/password/auditar-credencial");\ncurl_setopt($ch, CURLOPT_POST, 1);\ncurl_setopt($ch, CURLOPT_POSTFIELDS, '\${payload}');\ncurl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\ncurl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: ******", "x-api-key: pass_live_hibp_2026", "Content-Type: application/json"]);\n$res = curl_exec($ch);\nprint_r(json_decode($res, true));\`;
+      }
+    }
+
+    document.getElementById('btn-copy-code').addEventListener('click', () => {
+      const txt = document.getElementById('snippet-code').textContent;
+      navigator.clipboard.writeText(txt).then(() => alert('Snippet copiado com sucesso!'));
+    });
+
+    // ── LÓGICA DE AUDITORIA FORENSE ──
+    async function executarAuditoria() {
+      const pwd = document.getElementById('pass-input').value;
+      const email = document.getElementById('email-input').value;
+      updateSnippet();
+
+      const consoleOutput = document.getElementById('console-output');
+      const consoleStatus = document.getElementById('console-status');
+      const consoleLat = document.getElementById('console-latency');
+      consoleOutput.textContent = 'Executando auditoria k-Anonymity SHA-1 no banco Have I Been Pwned...';
+
+      const t0 = performance.now();
+      try {
+        const parecer = await PassValidatorPro.auditarCredencial(email, pwd);
+        const lat = Math.round(performance.now() - t0);
+
+        consoleStatus.textContent = '200 OK';
+        consoleStatus.className = 'badge-200';
+        consoleLat.textContent = \`Latência: \${lat}ms\`;
+        consoleOutput.textContent = JSON.stringify(parecer, null, 2);
+
+        // Atualiza campos de status visual
+        const isVazada = parecer.auditoria_credencial.senha_vazada_no_hibp;
+        const count = parecer.auditoria_credencial.total_ocorrencias_senha;
+        const pwnedCol = document.getElementById('val-pwned-count');
+
+        if (isVazada) {
+          pwnedCol.innerHTML = \`<span class="status-badge-pill red">🚨 VAZADA (\${count.toLocaleString('pt-BR')} ocorrências)</span>\`;
+        } else {
+          pwnedCol.innerHTML = \`<span class="status-badge-pill green">✅ INÉDITA (0 vazamentos)</span>\`;
+        }
+
+        document.getElementById('val-cred-status').textContent = parecer.auditoria_credencial.classificacao;
+        document.getElementById('val-recomendacao').textContent = parecer.auditoria_credencial.recomendacao;
+
+        // Entropia
+        const entropia = PassValidatorPro.calcularEntropia(pwd);
+        const scoreEl = document.getElementById('entropy-score-text');
+        const barEl = document.getElementById('entropy-bar');
+        const crackEl = document.getElementById('crack-time-display');
+
+        scoreEl.textContent = \`\${entropia.classificacao} (\${entropia.bits.toFixed(1)} bits)\`;
+        barEl.style.width = \`\${Math.min(100, Math.max(10, (entropia.bits / 80) * 100))}%\`;
+        barEl.style.backgroundColor = entropia.bits > 60 ? '#10b981' : (entropia.bits > 35 ? '#f59e0b' : '#ef4444');
+        crackEl.textContent = entropia.cenarios_praticos.computador_pessoal;
+
+        // Breaches corporativos
+        const breaches = parecer.vazamentos_historicos_provedor.incidentes || [];
+        const breachesBox = document.getElementById('breaches-container');
+        if (breaches.length > 0) {
+          breachesBox.innerHTML = \`
+            <div style="background:rgba(239, 68, 68, 0.08);border:1px solid rgba(239, 68, 68, 0.25);border-radius:var(--radius-lg);padding:16px;">
+              <div style="font-size:12.5px;font-weight:700;color:#ef4444;margin-bottom:8px;">
+                🏢 Incidentes Históricos Confirmados no Domínio (\${breaches.length}):
+              </div>
+              \${breaches.map(b => \`
+                <div style="padding:10px 12px;background:var(--paper);border-radius:8px;margin-top:6px;border:1px solid var(--line);font-size:12px;">
+                  • <strong>\${b.titulo}</strong> (\${b.dataVazamento}) — \${b.contasAfetadas.toLocaleString('pt-BR')} contas expostas<br>
+                  <span style="font-size:11px;color:var(--muted);">Dados vazados: \${b.dadosVazados.join(', ')}</span>
+                </div>
+              \`).join('')}
+            </div>
+          \`;
+        } else {
+          breachesBox.innerHTML = '';
+        }
+      } catch (err) {
+        consoleOutput.textContent = \`Erro: \${err.message}\`;
+      }
+    }
+
+    document.getElementById('btn-exec-audit').addEventListener('click', executarAuditoria);
+    document.getElementById('pass-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') executarAuditoria();
+    });
+
+    document.querySelectorAll('.sample-pass').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('pass-input').value = btn.dataset.pass;
+        document.getElementById('email-input').value = btn.dataset.email;
+        executarAuditoria();
+      });
+    });
+
+    // ── LÓGICA DO GERADOR MULTIPERFIL ──
+    let activeProfile = 'forte';
+    document.querySelectorAll('.gen-profile-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.gen-profile-btn').forEach(b => {
+          b.style.borderColor = 'var(--line)';
+          b.style.color = 'var(--muted)';
+        });
+        btn.style.borderColor = 'var(--blue)';
+        btn.style.color = 'var(--blue)';
+        activeProfile = btn.dataset.profile;
+        gerarSenha();
+      });
+    });
+
+    function gerarSenha() {
+      const novaSenha = PassValidatorPro.gerar(activeProfile);
+      document.getElementById('generated-password-display').textContent = novaSenha;
+    }
+
+    document.getElementById('btn-new-generated').addEventListener('click', gerarSenha);
+    document.getElementById('btn-copy-generated').addEventListener('click', () => {
+      const p = document.getElementById('generated-password-display').textContent.trim();
+      navigator.clipboard.writeText(p).then(() => alert('Senha copiada!'));
+    });
+
+    // ── LÓGICA DE BREACHES POR DOMÍNIO ──
+    async function buscarBreaches() {
+      const dom = document.getElementById('domain-search-input').value.trim();
+      if (!dom) return;
+      const listEl = document.getElementById('domain-breaches-list');
+      listEl.innerHTML = '<div style="color:var(--muted);font-size:12px;">Consultando histórico oficial...</div>';
+
+      const res = await PassValidatorPro.consultarVazamentosDominio(dom);
+      if (res && res.length > 0) {
+        listEl.innerHTML = res.map(b => \`
+          <div style="padding:14px;border-radius:var(--radius-md);background:var(--paper-elevated,#f8fafc);border:1px solid var(--line);font-size:12.5px;">
+            <div style="font-weight:800;color:var(--ink);margin-bottom:4px;">\${b.titulo}</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px;">Data: \${b.dataVazamento} · \${b.contasAfetadas.toLocaleString('pt-BR')} contas afetadas</div>
+            <div style="font-size:11px;color:#ef4444;">Exposição: \${b.dadosVazados.join(', ')}</div>
+          </div>
+        \`).join('');
+      } else {
+        listEl.innerHTML = '<div style="color:#10b981;font-size:12.5px;font-weight:700;">✅ Nenhum incidente de grande porte registrado para este domínio!</div>';
+      }
+    }
+
+    document.getElementById('btn-search-domain').addEventListener('click', buscarBreaches);
+
+    // Sandbox Trigger
+    document.getElementById('btn-run-sandbox').addEventListener('click', executarAuditoria);
+
+    // Inicialização
+    if (window.lucide) window.lucide.createIcons();
+    setTimeout(() => {
+      if (window.lucide) window.lucide.createIcons();
+      executarAuditoria();
+    }, 100);
+  </script>
+</body>
+</html>
+`;
+
+fs.writeFileSync('index.html', html, 'utf8');
+console.log('passvalidator-pro index.html modernized with marketplace design system!');

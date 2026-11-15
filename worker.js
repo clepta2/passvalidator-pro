@@ -8,6 +8,7 @@
  */
 
 import { PassValidatorPro } from './passvalidator-pro.js';
+import { STYLES_CSS, HTML_INDEX, CLIENT_JS, OZPRO_MARK_SVG } from './site-assets.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -248,7 +249,50 @@ export default {
       });
     }
 
-    // Rota Raiz: Documentação rápida
+    // ── ROTA: ARQUIVOS ESTÁTICOS DO SITE PRÓPRIO (TEMPLATE PONTE API MARKETPLACE) ──
+    if (path === '/styles.css' || path === '/ponte-suite.css') {
+      return new Response(STYLES_CSS, {
+        headers: {
+          ...CORS_HEADERS,
+          'Content-Type': 'text/css; charset=utf-8',
+          'Cache-Control': 'public, max-age=604800, s-maxage=2592000'
+        }
+      });
+    }
+
+    if (path === '/brand/ozpro-mark.svg') {
+      return new Response(OZPRO_MARK_SVG, {
+        headers: {
+          ...CORS_HEADERS,
+          'Content-Type': 'image/svg+xml; charset=utf-8',
+          'Cache-Control': 'public, max-age=2592000, s-maxage=2592000'
+        }
+      });
+    }
+
+    if (path === '/passvalidator-pro.js') {
+      return new Response(CLIENT_JS, {
+        headers: {
+          ...CORS_HEADERS,
+          'Content-Type': 'application/javascript; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+    }
+
+    // ── ROTA: SITE PRÓPRIO OFICIAL (TEMPLATE SUÍTE PONTE / OZPRO) ──
+    const acceptHeader = request.headers.get('Accept') || '';
+    if ((path === '/' || path === '/app') && !acceptHeader.includes('application/json')) {
+      return new Response(HTML_INDEX, {
+        headers: {
+          ...CORS_HEADERS,
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'public, max-age=300, s-maxage=3600'
+        }
+      });
+    }
+
+    // Rota Raiz: Documentação rápida JSON
     return new Response(JSON.stringify({
       api: 'PassValidator Pro API',
       status: 'online',
