@@ -309,7 +309,7 @@
                   <div style="position:relative;">
                     <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">Senha a Auditar</label>
                     <input type="password" id="pass-input" value="123456" style="width:100%;height:44px;padding:0 40px 0 14px;border:1px solid var(--line);border-radius:var(--radius-md);font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--ink);background:var(--paper);outline:none;" />
-                    <button type="button" id="btn-toggle-eye" style="position:absolute;right:10px;top:35px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;" title="Ver/ocultar senha">👁️</button>
+                    <button type="button" id="btn-toggle-eye" style="position:absolute;right:10px;top:32px;background:none;border:none;cursor:pointer;color:var(--muted);" title="Ver/ocultar senha"><i data-lucide="eye"></i></button>
                   </div>
                   <div>
                     <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;">E-mail ou Empresa (Opcional)</label>
@@ -324,12 +324,18 @@
                   </button>
                 </div>
 
-                <!-- Presets Rápidos -->
+                <!-- Presets Rápidos Padronizados -->
                 <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:11.5px;margin-bottom:20px;">
                   <span style="color:var(--muted);font-weight:600;">Cenários de Teste:</span>
-                  <button class="secondary-button sample-pass" data-pass="123456" data-email="vitima@adobe.com" style="padding:5px 11px;font-size:11px;">🔴 123456 + Adobe (2013)</button>
-                  <button class="secondary-button sample-pass" data-pass="P@ssw0rd2024!" data-email="designer@canva.com" style="padding:5px 11px;font-size:11px;">🟠 P@ssw0rd2024! + Canva</button>
-                  <button class="secondary-button sample-pass" data-pass="Tx9#Kz2$Wp7!Lm8@" data-email="seguro@minhaempresa.com.br" style="padding:5px 11px;font-size:11px;">🟢 Tx9#Kz2$Wp7!Lm8@ (Inédita)</button>
+                  <button class="secondary-button sample-pass" data-pass="123456" data-email="vitima@adobe.com" style="padding:4px 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:5px;">
+                    <i data-lucide="alert-triangle" style="color:#ef4444;"></i> <span>123456 (Adobe 2013)</span>
+                  </button>
+                  <button class="secondary-button sample-pass" data-pass="P@ssw0rd2024!" data-email="designer@canva.com" style="padding:4px 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:5px;">
+                    <i data-lucide="alert-circle" style="color:#f59e0b;"></i> <span>P@ssw0rd2024! (Canva)</span>
+                  </button>
+                  <button class="secondary-button sample-pass" data-pass="Tx9#Kz2$Wp7!Lm8@" data-email="seguro@minhaempresa.com.br" style="padding:4px 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:5px;">
+                    <i data-lucide="shield-check" style="color:#10b981;"></i> <span>Tx9#Kz2$Wp7!Lm8@ (Inédita)</span>
+                  </button>
                 </div>
 
                 <!-- Medidor de Força e Entropia -->
@@ -619,19 +625,20 @@ print_r(json_decode($res, true));`;
         consoleLat.textContent = `Latência: ${lat}ms`;
         consoleOutput.textContent = JSON.stringify(parecer, null, 2);
 
-        // Atualiza campos de status visual
-        const isVazada = parecer.auditoria_credencial.senha_vazada_no_hibp;
-        const count = parecer.auditoria_credencial.total_ocorrencias_senha;
+        // Atualiza campos de status visual com suporte a ambos os formatos de retorno
+        const auditCred = parecer.auditoria_credencial || parecer.senhaAuditada || {};
+        const isVazada = auditCred.senha_vazada_no_hibp ?? auditCred.vazada ?? false;
+        const count = auditCred.total_ocorrencias_senha ?? auditCred.ocorrencias ?? 0;
         const pwnedCol = document.getElementById('val-pwned-count');
 
         if (isVazada) {
-          pwnedCol.innerHTML = `<span class="status-badge-pill red">🚨 VAZADA (${count.toLocaleString('pt-BR')} ocorrências)</span>`;
+          pwnedCol.innerHTML = `<span class="status-badge-pill red"><i data-lucide="alert-triangle"></i> <span>VAZADA (${Number(count).toLocaleString('pt-BR')} ocorrências)</span></span>`;
         } else {
-          pwnedCol.innerHTML = `<span class="status-badge-pill green">✅ INÉDITA (0 vazamentos)</span>`;
+          pwnedCol.innerHTML = `<span class="status-badge-pill green"><i data-lucide="shield-check"></i> <span>INÉDITA (0 vazamentos)</span></span>`;
         }
 
-        document.getElementById('val-cred-status').textContent = parecer.auditoria_credencial.classificacao;
-        document.getElementById('val-recomendacao').textContent = parecer.auditoria_credencial.recomendacao;
+        document.getElementById('val-cred-status').textContent = auditCred.classificacao || parecer.riscoCombo || 'AUDITADA';
+        document.getElementById('val-recomendacao').textContent = auditCred.recomendacao || parecer.recomendacao || 'Sem recomendação adicional';
 
         // Entropia
         const entropia = PassValidatorPro.calcularEntropia(pwd);
@@ -642,16 +649,17 @@ print_r(json_decode($res, true));`;
         scoreEl.textContent = `${entropia.classificacao} (${entropia.bits.toFixed(1)} bits)`;
         barEl.style.width = `${Math.min(100, Math.max(10, (entropia.bits / 80) * 100))}%`;
         barEl.style.backgroundColor = entropia.bits > 60 ? '#10b981' : (entropia.bits > 35 ? '#f59e0b' : '#ef4444');
-        crackEl.textContent = entropia.cenarios_praticos.computador_pessoal;
+        crackEl.textContent = (entropia.cenarios_praticos && entropia.cenarios_praticos.computador_pessoal) || (entropia.cenarios_quebra && entropia.cenarios_quebra.offline_rapido_gpu) || 'Instantâneo (< 1s)';
 
         // Breaches corporativos
-        const breaches = parecer.vazamentos_historicos_provedor.incidentes || [];
+        const domBreaches = parecer.vazamentos_historicos_provedor || parecer.vazamentosDominio || {};
+        const breaches = domBreaches.incidentes || [];
         const breachesBox = document.getElementById('breaches-container');
         if (breaches.length > 0) {
           breachesBox.innerHTML = `
             <div style="background:rgba(239, 68, 68, 0.08);border:1px solid rgba(239, 68, 68, 0.25);border-radius:var(--radius-lg);padding:16px;">
-              <div style="font-size:12.5px;font-weight:700;color:#ef4444;margin-bottom:8px;">
-                🏢 Incidentes Históricos Confirmados no Domínio (${breaches.length}):
+              <div style="font-size:12.5px;font-weight:700;color:#ef4444;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+                <i data-lucide="building"></i> <span>Incidentes Históricos no Domínio (${breaches.length}):</span>
               </div>
               ${breaches.map(b => `
                 <div style="padding:10px 12px;background:var(--paper);border-radius:8px;margin-top:6px;border:1px solid var(--line);font-size:12px;">
@@ -664,6 +672,7 @@ print_r(json_decode($res, true));`;
         } else {
           breachesBox.innerHTML = '';
         }
+        if (window.lucide) window.lucide.createIcons();
       } catch (err) {
         consoleOutput.textContent = `Erro: ${err.message}`;
       }
@@ -725,8 +734,9 @@ print_r(json_decode($res, true));`;
           </div>
         `).join('');
       } else {
-        listEl.innerHTML = '<div style="color:#10b981;font-size:12.5px;font-weight:700;">✅ Nenhum incidente de grande porte registrado para este domínio!</div>';
+        listEl.innerHTML = '<div style="color:#10b981;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px;"><i data-lucide="check-circle-2"></i> <span>Nenhum incidente de grande porte registrado para este domínio!</span></div>';
       }
+      if (window.lucide) window.lucide.createIcons();
     }
 
     document.getElementById('btn-search-domain').addEventListener('click', buscarBreaches);

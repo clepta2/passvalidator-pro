@@ -323,6 +323,19 @@ export class PassValidatorPro {
       riscoCombo,
       motivoRisco,
       recomendacao,
+      auditoria_credencial: {
+        email_consultado: email || null,
+        dominio_analisado: vazDom.dominio || null,
+        senha_vazada_no_hibp: isSenhaVazada,
+        total_ocorrencias_senha: checarVaz.ocorrencias,
+        classificacao: riscoCombo,
+        recomendacao
+      },
+      vazamentos_historicos_provedor: {
+        total_incidentes_encontrados: vazDom.totalVazamentos,
+        incidentes_com_exposicao_senhas: vazamentoComSenha.length,
+        incidentes: vazDom.vazamentos
+      },
       senhaAuditada: {
         vazada: isSenhaVazada,
         ocorrencias: checarVaz.ocorrencias,
@@ -343,7 +356,7 @@ export class PassValidatorPro {
   /**
    * Calcula a Entropia Efetiva de Shannon e 4 cenários práticos de quebra por força bruta.
    * @param {string} senha
-   * @returns {{ bits: number, bitsTeoricos: number, tamanhoConjunto: number, taxaDiversidade: number, tempoEstimadoQuebra: string, cenarios_quebra: object }}
+   * @returns {{ bits: number, bitsTeoricos: number, tamanhoConjunto: number, taxaDiversidade: number, tempoEstimadoQuebra: string, cenarios_quebra: object, cenarios_praticos: object }}
    */
   static calcularEntropia(senha) {
     if (!senha || typeof senha !== 'string') {
@@ -353,6 +366,9 @@ export class PassValidatorPro {
         tamanhoConjunto: 0,
         taxaDiversidade: 0,
         tempoEstimadoQuebra: 'Instantâneo (< 1 segundo)',
+        cenarios_praticos: {
+          computador_pessoal: 'Instantâneo (< 1 segundo)'
+        },
         cenarios_quebra: {
           online_protegido: 'Instantâneo (< 1 segundo)',
           online_desprotegido: 'Instantâneo (< 1 segundo)',
@@ -410,6 +426,9 @@ export class PassValidatorPro {
       tamanhoConjunto: pool,
       taxaDiversidade,
       tempoEstimadoQuebra: cenarios.offline_rapido_gpu,
+      cenarios_praticos: {
+        computador_pessoal: cenarios.offline_rapido_gpu
+      },
       cenarios_quebra: cenarios
     };
   }
@@ -683,9 +702,9 @@ export class PassValidatorPro {
   static gerar(tipo = 'forte', opcoes = {}) {
     const perfil = tipo.toLowerCase();
 
-    // 1. FORTE / COMPLETA (Enterprise Standard)
-    if (perfil === 'forte' || perfil === 'completa' || perfil === 'complex') {
-      const comprimento = Math.max(8, Math.min(128, opcoes.comprimento || 16));
+    // 1. FORTE / COMPLETA / ULTRA (Enterprise Standard)
+    if (perfil === 'forte' || perfil === 'completa' || perfil === 'complex' || perfil === 'ultra' || perfil === 'maxima') {
+      const comprimento = Math.max(8, Math.min(128, opcoes.comprimento || (perfil === 'ultra' ? 24 : 16)));
       const evitarAmbiguos = opcoes.evitarAmbiguos !== false;
 
       let maiusc = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
