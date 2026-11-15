@@ -689,7 +689,14 @@
         </div>
 
         <div id="lengthControlGroup">
-          <label for="lengthRange">Comprimento: <strong id="lengthValue">16</strong> caracteres</label>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="lengthRange" style="margin-bottom:0;">Comprimento: <strong id="lengthValue" style="color:var(--primary);">16</strong> caracteres</label>
+            <div class="stepper-controls" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 8px; border: 1px solid var(--card-border);">
+              <button type="button" id="btnLenDec" style="background:none; border:none; color:var(--text); font-weight:800; font-size:16px; cursor:pointer; width:26px; height:26px; border-radius:4px; display:grid; place-items:center;" title="Diminuir dígitos">−</button>
+              <input type="number" id="lengthNumber" min="8" max="64" value="16" style="width: 44px; height: 26px; text-align: center; background: transparent; border: none; color: var(--primary); font-weight: 800; font-family: var(--font-mono); font-size: 13px; outline: none;" />
+              <button type="button" id="btnLenInc" style="background:none; border:none; color:var(--text); font-weight:800; font-size:16px; cursor:pointer; width:26px; height:26px; border-radius:4px; display:grid; place-items:center;" title="Aumentar dígitos">+</button>
+            </div>
+          </div>
           <div class="range-wrap">
             <input type="range" id="lengthRange" min="8" max="64" value="16">
           </div>
@@ -942,12 +949,46 @@
     const generatedPassword = document.getElementById('generatedPassword');
     const profileSelect = document.getElementById('profileSelect');
     const lengthRange = document.getElementById('lengthRange');
+    const lengthNumber = document.getElementById('lengthNumber');
     const lengthValue = document.getElementById('lengthValue');
+    const btnLenInc = document.getElementById('btnLenInc');
+    const btnLenDec = document.getElementById('btnLenDec');
     const btnGenerate = document.getElementById('btnGenerate');
     const btnCopy = document.getElementById('btnCopy');
     const btnTestThis = document.getElementById('btnTestThis');
     const chkChunks = document.getElementById('chkChunks');
     const lengthControlGroup = document.getElementById('lengthControlGroup');
+
+    function syncLength(val) {
+      const min = parseInt(lengthRange.min, 10) || 8;
+      const max = parseInt(lengthRange.max, 10) || 64;
+      let num = parseInt(val, 10);
+      if (isNaN(num)) num = min;
+      num = Math.max(min, Math.min(max, num));
+      lengthRange.value = num;
+      if (lengthNumber) lengthNumber.value = num;
+      const p = profileSelect.value;
+      lengthValue.textContent = p === 'passphrase' ? `${num} palavras` : num;
+      dispararGerador();
+    }
+
+    if (btnLenInc) {
+      btnLenInc.addEventListener('click', () => {
+        syncLength(parseInt(lengthRange.value, 10) + 1);
+      });
+    }
+
+    if (btnLenDec) {
+      btnLenDec.addEventListener('click', () => {
+        syncLength(parseInt(lengthRange.value, 10) - 1);
+      });
+    }
+
+    if (lengthNumber) {
+      lengthNumber.addEventListener('input', () => {
+        syncLength(lengthNumber.value);
+      });
+    }
 
     profileSelect.addEventListener('change', () => {
       const p = profileSelect.value;
@@ -958,27 +999,25 @@
         if (p === 'pin') {
           lengthRange.min = 4;
           lengthRange.max = 12;
-          lengthRange.value = 6;
-          lengthValue.textContent = '6';
+          if (lengthNumber) { lengthNumber.min = 4; lengthNumber.max = 12; }
+          syncLength(6);
         } else if (p === 'passphrase') {
           lengthRange.min = 3;
           lengthRange.max = 6;
-          lengthRange.value = 4;
-          lengthValue.textContent = '4 palavras';
+          if (lengthNumber) { lengthNumber.min = 3; lengthNumber.max = 6; }
+          syncLength(4);
         } else {
           lengthRange.min = 8;
           lengthRange.max = 64;
-          lengthRange.value = 16;
-          lengthValue.textContent = '16';
+          if (lengthNumber) { lengthNumber.min = 8; lengthNumber.max = 64; }
+          syncLength(16);
         }
       }
       dispararGerador();
     });
 
     lengthRange.addEventListener('input', () => {
-      const p = profileSelect.value;
-      lengthValue.textContent = p === 'passphrase' ? `${lengthRange.value} palavras` : lengthRange.value;
-      dispararGerador();
+      syncLength(lengthRange.value);
     });
 
     chkChunks.addEventListener('change', dispararGerador);
