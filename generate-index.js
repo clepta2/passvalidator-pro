@@ -157,6 +157,229 @@ const html = `<!DOCTYPE html>
       border-radius: var(--radius-full);
       transition: width 0.3s ease, background-color 0.3s ease;
     }
+
+    /* Terminal Console: contraste garantido em qualquer tema */
+    .console-json, #console-output {
+      color: #f8fafc !important;
+      font-family: 'JetBrains Mono', monospace !important;
+    }
+
+    /* Compactação de Pílulas e Chips para evitar botões gigantes */
+    .sample-pass, .sample-domain, .btn-preset, .chip {
+      min-height: 28px !important;
+      height: 28px !important;
+      line-height: 26px !important;
+      padding: 0 10px !important;
+      font-size: 11px !important;
+      border-radius: 6px !important;
+    }
+
+    html, body {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+    }
+
+    /* ── Otimizações Responsivas Mobile & Telas Estreitas (<850px) ── */
+    @media (max-width: 850px) {
+      html, body, .app-shell, .main-area, .content-wrap {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+      }
+      .app-shell {
+        grid-template-columns: 1fr !important;
+      }
+      .sidebar {
+        display: none !important;
+      }
+      .topbar {
+        height: auto !important;
+        min-height: 48px !important;
+        padding: 6px 12px !important;
+        gap: 6px !important;
+      }
+      .breadcrumb {
+        font-size: 11px !important;
+      }
+      .breadcrumb span:not(:last-child), .breadcrumb a {
+        display: none !important;
+      }
+      .environment {
+        display: none !important;
+      }
+      .topbar-actions {
+        margin-left: auto !important;
+        gap: 6px !important;
+      }
+      .primary-button.accent {
+        height: 32px !important;
+        min-height: 32px !important;
+        padding: 0 10px !important;
+        font-size: 11px !important;
+      }
+      .theme-toggle-btn {
+        width: 32px !important;
+        height: 32px !important;
+      }
+      .content-wrap {
+        padding: 12px 12px 36px !important;
+      }
+      .page-heading {
+        margin-bottom: 12px !important;
+      }
+      .page-heading h1 {
+        font-size: 1.25rem !important;
+        line-height: 1.25 !important;
+        margin-bottom: 4px !important;
+      }
+      .page-heading .eyebrow {
+        font-size: 9.5px !important;
+        margin-bottom: 2px !important;
+      }
+      .page-subtitle {
+        font-size: 11.5px !important;
+        line-height: 1.4 !important;
+        margin-bottom: 10px !important;
+      }
+      .billing-models-grid {
+        display: flex !important;
+        overflow-x: auto !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+        gap: 6px !important;
+        margin-bottom: 12px !important;
+        padding-bottom: 2px !important;
+      }
+      .billing-models-grid::-webkit-scrollbar {
+        display: none !important;
+      }
+      .model-card {
+        flex: 1 0 auto !important;
+        padding: 6px 10px !important;
+        border-radius: var(--radius-md) !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+      }
+      .model-card .model-badge {
+        font-size: 9px !important;
+        padding: 2px 5px !important;
+        margin-bottom: 0 !important;
+        white-space: nowrap !important;
+      }
+      .model-card div[style*="font-size:20px"] {
+        font-size: 11.5px !important;
+        font-weight: 700 !important;
+        margin-bottom: 0 !important;
+        white-space: nowrap !important;
+      }
+      .model-card p {
+        display: none !important;
+      }
+      .tab-nav-bar {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+        gap: 6px !important;
+        padding: 4px !important;
+        margin-bottom: 14px !important;
+        border-radius: var(--radius-lg) !important;
+      }
+      .tab-nav-bar::-webkit-scrollbar {
+        display: none !important;
+      }
+      .tab-nav-btn {
+        flex: 0 0 auto !important;
+        height: 32px !important;
+        min-height: 32px !important;
+        padding: 0 12px !important;
+        font-size: 11.5px !important;
+        white-space: nowrap !important;
+        border-radius: var(--radius-md) !important;
+        gap: 5px !important;
+        text-align: center !important;
+      }
+      .tab-nav-btn svg, .tab-nav-btn .lucide {
+        width: 14px !important;
+        height: 14px !important;
+      }
+      .card-dashboard {
+        padding: 12px !important;
+        border-radius: var(--radius-lg) !important;
+      }
+      .card-dashboard div[style*="font-size:14px"] {
+        font-size: 12.5px !important;
+      }
+      .card-dashboard p[style*="font-size:12.5px"] {
+        font-size: 11px !important;
+        margin-bottom: 10px !important;
+      }
+      input[type="text"], input[type="password"], input[type="number"], select {
+        height: 36px !important;
+        min-height: 36px !important;
+        font-size: 12.5px !important;
+        padding: 0 10px !important;
+      }
+      .primary-button, .secondary-button, #btn-exec-auditar, #btn-exec-gerar, #btn-exec-breaches {
+        height: 36px !important;
+        min-height: 36px !important;
+        padding: 0 12px !important;
+        font-size: 11.5px !important;
+      }
+      .sample-pass, .sample-domain, .btn-preset {
+        min-height: 26px !important;
+        height: 26px !important;
+        padding: 0 7px !important;
+        font-size: 10.5px !important;
+      }
+      .playground-split {
+        margin-top: 12px !important;
+        gap: 12px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .playground-left, .playground-right {
+        width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+      }
+      .specs-table td {
+        padding: 7px 9px !important;
+        font-size: 11px !important;
+      }
+      .specs-table td.label-col {
+        font-size: 10px !important;
+        width: 38% !important;
+      }
+      .terminal-window {
+        border-radius: var(--radius-lg) !important;
+        background: #091311 !important;
+      }
+      .terminal-topbar {
+        padding: 7px 10px !important;
+      }
+      .snippet-tab {
+        padding: 2px 6px !important;
+        font-size: 10px !important;
+      }
+      .terminal-body {
+        padding: 8px 10px !important;
+        font-size: 11px !important;
+      }
+      .playground-console {
+        padding: 12px !important;
+        min-height: 200px !important;
+        max-height: 380px !important;
+      }
+      .console-json, #console-output {
+        color: #f8fafc !important;
+        font-size: 11px !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -743,4 +966,25 @@ const html = `<!DOCTYPE html>
 `;
 
 fs.writeFileSync('index.html', html, 'utf8');
+
+// Atualiza site-assets.js para o Cloudflare Worker servir este HTML
+const assetsPath = 'site-assets.js';
+if (fs.existsSync(assetsPath)) {
+  let assetsText = fs.readFileSync(assetsPath, 'utf8');
+  const startTag = 'export const HTML_INDEX =';
+  const startIdx = assetsText.indexOf(startTag);
+  if (startIdx !== -1) {
+    const endTag1 = 'export const CLIENT_JS';
+    const endTag2 = 'export const OZPRO_MARK_SVG';
+    const nextIdx1 = assetsText.indexOf(endTag1, startIdx);
+    const nextIdx2 = assetsText.indexOf(endTag2, startIdx);
+    const nextIdx = Math.min(nextIdx1 !== -1 ? nextIdx1 : Infinity, nextIdx2 !== -1 ? nextIdx2 : Infinity);
+    if (nextIdx !== Infinity) {
+      assetsText = assetsText.slice(0, startIdx) + `export const HTML_INDEX = ${JSON.stringify(html)};\r\n\r\n` + assetsText.slice(nextIdx);
+      fs.writeFileSync(assetsPath, assetsText, 'utf8');
+      console.log('site-assets.js updated with updated HTML_INDEX!');
+    }
+  }
+}
+
 console.log('passvalidator-pro index.html modernized with marketplace design system!');
