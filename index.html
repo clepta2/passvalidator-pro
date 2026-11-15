@@ -9,17 +9,19 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #090d16;
+      --bg: #0b0f19;
       --card-bg: #111827;
-      --card-border: #1f2937;
-      --text: #f3f4f6;
-      --text-muted: #9ca3af;
-      --primary: #3b82f6;
-      --primary-hover: #2563eb;
+      --card-border: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3af;
+      --mint: #a3e635;
+      --mint-glow: rgba(163, 230, 53, 0.28);
+      --primary: #a3e635;
+      --primary-hover: #bef264;
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
-      --accent: #8b5cf6;
+      --accent: #38bdf8;
       --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
@@ -32,6 +34,9 @@
 
     body {
       background-color: var(--bg);
+      background-image: 
+        radial-gradient(1000px 500px at 50% -80px, rgba(163, 230, 53, 0.08) 0%, transparent 60%),
+        radial-gradient(800px 400px at 100% 50%, rgba(56, 189, 248, 0.04) 0%, transparent 50%);
       color: var(--text);
       font-family: var(--font-sans);
       min-height: 100vh;
@@ -55,9 +60,9 @@
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: rgba(59, 130, 246, 0.12);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      color: #60a5fa;
+      background: rgba(163, 230, 53, 0.12);
+      border: 1px solid rgba(163, 230, 53, 0.3);
+      color: var(--mint);
       padding: 0.35rem 0.85rem;
       border-radius: 9999px;
       font-size: 0.825rem;
@@ -70,7 +75,7 @@
       font-weight: 800;
       letter-spacing: -0.03em;
       margin-bottom: 0.75rem;
-      background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+      background: linear-gradient(135deg, #ffffff 40%, var(--mint) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -108,9 +113,10 @@
     }
 
     .tab-btn.active {
-      background: var(--card-bg);
-      color: var(--text);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      background: var(--mint);
+      color: #0c1715;
+      font-weight: 700;
+      box-shadow: 0 4px 14px var(--mint-glow);
     }
 
     .card {
