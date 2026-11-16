@@ -7,9 +7,9 @@ const html = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PassValidator Pro • Validador de Senhas HIBP & Gerador Multiperfil • Ponte API Market</title>
   <meta name="description" content="Auditoria de senhas em tempo real contra mais de 860 milhões de credenciais vazadas via k-Anonymity SHA-1 (Have I Been Pwned), conformidade NIST SP 800-63B e gerador criptográfico multiperfil." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  
+  
+  
   <link rel="stylesheet" href="styles.css?v=4.0.0" />
   <script>
     (function() {
@@ -17,7 +17,7 @@ const html = `<!DOCTYPE html>
       document.documentElement.setAttribute('data-theme', savedTheme);
     })();
   </script>
-  <script defer src="https://unpkg.com/lucide@latest"></script>
+  <script defer src=''></script>
   <style>
     svg.lucide, .lucide {
       width: 20px !important;
