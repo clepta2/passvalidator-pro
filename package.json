@@ -10,7 +10,8 @@
     "passvalidator-pro": "bin/cli.js"
   },
   "scripts": {
-    "test": "node test.js"
+    "test": "node test.js",
+    "security:check": "node scripts/security-guard.js"
   },
   "keywords": [
     "password-validator",
