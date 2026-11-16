@@ -90,6 +90,39 @@ export default {
       });
     }
 
+    // 3.1 Rota Anycast Soberana: k-Anonymity HIBP Range Check (Sub-2ms Edge Cache)
+    if (path.startsWith('/api/password/range/')) {
+      const prefix = path.replace('/api/password/range/', '').trim().toUpperCase();
+      if (!prefix || prefix.length !== 5 || !/^[0-9A-F]{5}$/.test(prefix)) {
+        return new Response(JSON.stringify({ ok: false, error: 'Prefixo SHA-1 de 5 caracteres hexadecimais obrigatório.' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+        });
+      }
+
+      try {
+        const mapa = await PassValidatorPro._obterSufixosHibp(prefix);
+        let rawText = '';
+        for (const [suf, count] of mapa) {
+          rawText += `${suf}:${count}\r\n`;
+        }
+
+        return new Response(rawText, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'public, max-age=86400, s-maxage=604800, immutable',
+            ...CORS_HEADERS
+          }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: err.message }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+        });
+      }
+    }
+
     // 4. Rota: Gerador de Senhas
     if (path === '/api/password/generate' || path === '/api/gerar-senha') {
       const perfil = url.searchParams.get('profile') || url.searchParams.get('tipo') || 'forte';
